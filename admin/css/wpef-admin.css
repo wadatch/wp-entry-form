@@ -1,12 +1,12 @@
 /**
  * WP Entry Form 管理画面スタイル（ビルダー）。
  *
- * フィールドは「実際の表示に近いプレビュー」として見せ、項目名・説明はインライン編集する。
- * スマホ幅でも編集できるよう、横並びは縦積みにし、入力は 16px 以上でタップしやすくする。
+ * フィールドカードは「左に設定・右にプレビュー」の2カラム。各コントロールは
+ * 適度な余白で並べ、スマホ幅では縦積みにして入力をタップしやすくする。
  */
 
 .wpef-form-builder {
-	max-width: 820px;
+	max-width: 980px;
 	margin-top: 1em;
 }
 
@@ -19,10 +19,14 @@
 	flex-wrap: wrap;
 }
 
+.wpef-tab-body {
+	padding-top: 20px;
+}
+
 /* ---- フィールドカード ---- */
 .wpef-field-card {
 	border-left: 4px solid #2271b1;
-	margin-bottom: 12px;
+	margin-bottom: 16px;
 }
 
 .wpef-field-head {
@@ -37,152 +41,168 @@
 	user-select: none;
 }
 
-/* ---- プレビュー（実際の表示に近い見本） ---- */
-.wpef-fp {
-	padding: 12px;
-	margin-bottom: 12px;
-	background: #fff;
-	border: 1px solid #f0f0f1;
+.wpef-field-head .components-button {
+	margin-left: 4px;
+}
+
+/* ---- 2カラム（左:設定 / 右:プレビュー） ---- */
+.wpef-cols {
+	display: flex;
+	gap: 28px;
+	align-items: flex-start;
+}
+
+.wpef-col-settings {
+	flex: 1 1 55%;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+
+.wpef-col-preview {
+	flex: 1 1 45%;
+	min-width: 0;
+	padding: 16px 18px;
+	background: #f6f7f7;
+	border: 1px solid #e0e0e0;
 	border-radius: 6px;
 }
 
-.wpef-fp-labelrow {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-}
-
-.wpef-req {
-	color: #d63638;
-	font-weight: 700;
-}
-
-/* インライン編集の入力（見た目はテキスト、フォーカスで枠が出る） */
-.wpef-inline-label,
-.wpef-inline-help,
-.wpef-inline-heading,
-.wpef-inline-para {
-	display: block;
-	width: 100%;
-	box-sizing: border-box;
-	border: 1px dashed transparent;
-	background: transparent;
-	padding: 4px 6px;
-	border-radius: 4px;
-	font-family: inherit;
-}
-
-.wpef-inline-label {
-	font-weight: 600;
-	font-size: 14px;
-}
-
-.wpef-inline-help {
-	color: #50575e;
-	font-size: 12px;
-	margin-top: 4px;
-}
-
-.wpef-inline-heading {
-	font-size: 1.4em;
-	font-weight: 700;
-}
-
-.wpef-inline-para {
-	font-size: 1em;
-	color: #1d2327;
-}
-
-.wpef-inline-label:hover,
-.wpef-inline-help:hover,
-.wpef-inline-heading:hover,
-.wpef-inline-para:hover {
-	border-color: #dcdcde;
-}
-
-.wpef-inline-label:focus,
-.wpef-inline-help:focus,
-.wpef-inline-heading:focus,
-.wpef-inline-para:focus {
-	border-color: #2271b1;
-	outline: none;
-	background: #fff;
-}
-
-/* プレビューの入力欄（操作不可の見本） */
-.wpef-pv-input {
-	width: 100%;
-	box-sizing: border-box;
-	margin-top: 6px;
-	padding: 8px 10px;
-	border: 1px solid #dcdcde;
-	border-radius: 4px;
-	background: #f6f7f7;
-	color: #50575e;
-}
-
-.wpef-pv-options {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	margin-top: 6px;
-}
-
-.wpef-pv-option,
-.wpef-pv-consent {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	color: #1d2327;
-}
-
-.wpef-pv-consent .wpef-inline-label {
-	font-weight: 400;
-}
-
-/* ---- 操作エリア ---- */
-.wpef-fp-controls {
-	padding: 0 4px;
-}
-
+/* ---- 左カラムの操作 ---- */
 .wpef-ctrl-label {
 	font-weight: 600;
-	margin: 8px 0 4px;
+	margin: 0 0 8px;
 }
 
 .wpef-advanced {
-	margin-top: 12px;
-	padding-top: 8px;
+	margin-top: 4px;
+	padding-top: 14px;
 	border-top: 1px solid #f0f0f1;
 }
 
 .wpef-advanced > summary {
 	cursor: pointer;
 	color: #2271b1;
-	margin-bottom: 8px;
+	margin-bottom: 12px;
+}
+
+/* 横並び設定の間隔。 */
+.wpef-row {
+	gap: 16px;
 }
 
 /* ---- 選択肢エディタ ---- */
 .wpef-options-editor {
-	margin: 8px 0 12px;
-	padding: 12px;
-	background: #f6f7f7;
+	margin: 4px 0;
+	padding: 14px;
+	background: #fff;
+	border: 1px solid #e0e0e0;
 	border-radius: 4px;
 }
 
 .wpef-opt-row {
 	display: flex;
 	align-items: center;
-	gap: 8px;
-	margin-bottom: 6px;
+	gap: 10px;
+	margin-bottom: 10px;
 }
 
 .wpef-opt-input {
 	flex: 1;
 	min-width: 0;
-	padding: 6px 8px;
+	padding: 7px 9px;
 	border: 1px solid #dcdcde;
 	border-radius: 4px;
+}
+
+/* ---- 右カラムのプレビュー ---- */
+.wpef-pv-caption {
+	display: block;
+	margin-bottom: 12px;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.05em;
+	color: #787c82;
+	text-transform: uppercase;
+}
+
+.wpef-pv-body {
+	padding: 16px;
+	background: #fff;
+	border: 1px solid #f0f0f1;
+	border-radius: 6px;
+}
+
+.wpef-pv-field {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.wpef-pv-label {
+	font-weight: 600;
+	font-size: 14px;
+}
+
+.wpef-req {
+	color: #d63638;
+	font-weight: 700;
+	margin-left: 4px;
+}
+
+.wpef-pv-input {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 9px 11px;
+	border: 1px solid #8c8f94;
+	border-radius: 4px;
+	background: #fff;
+	color: #50575e;
+}
+
+.wpef-pv-options {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.wpef-pv-option,
+.wpef-pv-consent {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: #1d2327;
+}
+
+.wpef-pv-help {
+	font-size: 12px;
+	color: #50575e;
+}
+
+.wpef-pv-heading {
+	margin: 0;
+	font-size: 1.4em;
+}
+
+.wpef-pv-para {
+	margin: 0;
+}
+
+/* ---- 設定タブのパネル ---- */
+.wpef-settings-panel {
+	max-width: 640px;
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+
+.wpef-settings-panel h3 {
+	margin: 0;
+}
+
+.wpef-settings-panel .wpef-section-gap {
+	margin-top: 16px;
 }
 
 /* ---- 項目追加 ---- */
@@ -193,8 +213,8 @@
 .wpef-add-buttons {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 8px;
-	margin-top: 10px;
+	gap: 10px;
+	margin-top: 12px;
 }
 
 /* ---- スマホ対応 ---- */
@@ -203,27 +223,32 @@
 		max-width: 100%;
 	}
 
-	/* 横並びの設定行は縦積みに。 */
+	/* 2カラムを縦積みに（設定 → プレビューの順）。 */
+	.wpef-cols {
+		flex-direction: column;
+		gap: 18px;
+	}
+
+	/* 横並びの設定行も縦積みに。 */
 	.wpef-builder .wpef-row {
 		flex-direction: column !important;
 		align-items: stretch !important;
 	}
 
 	/* iOS の自動ズームを避けるため入力は 16px 以上に。 */
-	.wpef-inline-label,
-	.wpef-inline-help,
-	.wpef-inline-heading,
 	.wpef-pv-input,
 	.wpef-opt-input,
 	.wpef-builder input[type="text"],
 	.wpef-builder input[type="number"],
+	.wpef-builder input[type="email"],
+	.wpef-builder input[type="url"],
 	.wpef-builder textarea,
 	.wpef-builder select {
 		font-size: 16px;
 	}
 
 	.wpef-add-buttons .components-button {
-		flex: 1 1 calc( 50% - 8px );
+		flex: 1 1 calc( 50% - 10px );
 		justify-content: center;
 	}
 }
