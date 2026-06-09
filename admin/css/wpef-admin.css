@@ -1,12 +1,12 @@
 /**
  * WP Entry Form 管理画面スタイル（ビルダー）。
  *
- * フィールドカードは「左に設定・右にプレビュー」の2カラム。各コントロールは
- * 適度な余白で並べ、スマホ幅では縦積みにして入力をタップしやすくする。
+ * 編集はプレビュー1枚のキャンバス。各項目はラベルをその場で編集でき、⚙ で詳細設定を開閉、
+ * ⠿ で並べ替え、右端ハンドルで幅（cols）を変更する。スマホでは縦積み・タップしやすいサイズ。
  */
 
 .wpef-form-builder {
-	max-width: 980px;
+	max-width: 760px;
 	margin-top: 1em;
 }
 
@@ -14,7 +14,6 @@
 	margin-top: 0.5em;
 }
 
-/* タブはスマホで折り返す。 */
 .wpef-tabs .components-tab-panel__tabs {
 	flex-wrap: wrap;
 }
@@ -23,50 +22,92 @@
 	padding-top: 20px;
 }
 
-/* ---- フィールドカード ---- */
-.wpef-field-card {
+/* ---- キャンバス ---- */
+.wpef-canvas-note {
+	margin: 0 0 16px;
+	padding: 10px 12px;
+	background: #f0f6fc;
 	border-left: 4px solid #2271b1;
-	margin-bottom: 16px;
+	color: #1d2327;
 }
 
-.wpef-field-head {
+.wpef-fullpreview-form {
+	padding: 24px;
+	background: #fff;
+	border: 1px solid #e0e0e0;
+	border-radius: 6px;
+	display: grid;
+	grid-template-columns: repeat( 12, 1fr );
+	gap: 16px;
+	align-items: start;
+}
+
+.wpef-canvas-empty {
+	grid-column: span 12;
+	padding: 28px;
+	text-align: center;
+	color: #787c82;
+	border: 2px dashed #dcdcde;
+	border-radius: 6px;
+}
+
+/* ---- 編集可能フィールド ---- */
+.wpef-ef {
+	position: relative;
+	grid-column: span 12;
+	padding: 8px 14px 12px 10px;
+	border: 1px solid transparent;
+	border-radius: 6px;
+}
+
+.wpef-ef:hover {
+	border-color: #dcdcde;
+	background: #fcfcfd;
+}
+
+.wpef-ef.is-open {
+	border-color: #2271b1;
+	background: #f6f9fc;
+}
+
+.wpef-fullpreview-form > .wpef-col-1 { grid-column: span 1; }
+.wpef-fullpreview-form > .wpef-col-2 { grid-column: span 2; }
+.wpef-fullpreview-form > .wpef-col-3 { grid-column: span 3; }
+.wpef-fullpreview-form > .wpef-col-4 { grid-column: span 4; }
+.wpef-fullpreview-form > .wpef-col-5 { grid-column: span 5; }
+.wpef-fullpreview-form > .wpef-col-6 { grid-column: span 6; }
+.wpef-fullpreview-form > .wpef-col-7 { grid-column: span 7; }
+.wpef-fullpreview-form > .wpef-col-8 { grid-column: span 8; }
+.wpef-fullpreview-form > .wpef-col-9 { grid-column: span 9; }
+.wpef-fullpreview-form > .wpef-col-10 { grid-column: span 10; }
+.wpef-fullpreview-form > .wpef-col-11 { grid-column: span 11; }
+.wpef-fullpreview-form > .wpef-col-12 { grid-column: span 12; }
+
+/* ツールバー（ホバー／編集中に表示） */
+.wpef-ef-toolbar {
 	display: flex;
 	align-items: center;
-	gap: 8px;
-	background: #f6f7f7;
+	gap: 2px;
+	margin-bottom: 6px;
+	opacity: 0;
+	transition: opacity 0.1s;
 }
 
-.wpef-field-card .wpef-drag-handle {
+.wpef-ef:hover .wpef-ef-toolbar,
+.wpef-ef:focus-within .wpef-ef-toolbar,
+.wpef-ef.is-open .wpef-ef-toolbar {
+	opacity: 1;
+}
+
+.wpef-ef-toolbar .wpef-drag-handle {
+	cursor: grab;
 	color: #787c82;
 	font-size: 1.1em;
-	cursor: grab;
 	user-select: none;
-	flex-shrink: 0;
 }
 
-/* 開閉トグル（種別チップ＋項目名＋サマリ） */
-.wpef-field-toggle {
-	flex: 1;
-	min-width: 0;
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	padding: 6px 0;
-	border: 0;
-	background: none;
-	cursor: pointer;
-	font: inherit;
-	text-align: left;
-}
-
-.wpef-toggle-caret {
-	color: #787c82;
-	width: 1em;
-	flex-shrink: 0;
-}
-
-.wpef-field-type {
-	flex-shrink: 0;
+.wpef-ef-type {
+	margin-left: 4px;
 	padding: 1px 9px;
 	font-size: 11px;
 	color: #fff;
@@ -74,68 +115,175 @@
 	border-radius: 10px;
 }
 
-.wpef-field-name {
+.wpef-ef-spacer {
+	flex: 1;
+}
+
+.wpef-ef-body {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.wpef-pv-label-row {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+/* 詳細設定パネル */
+.wpef-ef-details {
+	margin-top: 14px;
+	padding-top: 14px;
+	border-top: 1px dashed #c3c4c7;
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+
+/* 右端のリサイズハンドル */
+.wpef-resize-handle {
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 10px;
+	height: 100%;
+	cursor: ew-resize;
+	border-radius: 0 6px 6px 0;
+	touch-action: none;
+}
+
+.wpef-resize-handle::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	right: 3px;
+	width: 3px;
+	height: 28px;
+	margin-top: -14px;
+	background: #dcdcde;
+	border-radius: 2px;
+}
+
+.wpef-ef:hover .wpef-resize-handle::before {
+	background: #2271b1;
+}
+
+body.wpef-resizing,
+body.wpef-resizing * {
+	cursor: ew-resize !important;
+	user-select: none;
+}
+
+/* ---- インライン編集（ラベル等） ---- */
+.wpef-inline-label,
+.wpef-inline-heading,
+.wpef-inline-para {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	border: 1px dashed transparent;
+	background: transparent;
+	padding: 4px 6px;
+	border-radius: 4px;
+	font-family: inherit;
+}
+
+.wpef-inline-label {
 	font-weight: 600;
+	font-size: 14px;
+}
+
+.wpef-inline-heading {
+	font-size: 1.4em;
+	font-weight: 700;
+}
+
+.wpef-inline-para {
+	font-size: 1em;
 	color: #1d2327;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
 }
 
-.wpef-field-cols {
-	margin-left: auto;
-	flex-shrink: 0;
+.wpef-inline-label:hover,
+.wpef-inline-heading:hover,
+.wpef-inline-para:hover {
+	border-color: #dcdcde;
+}
+
+.wpef-inline-label:focus,
+.wpef-inline-heading:focus,
+.wpef-inline-para:focus {
+	border-color: #2271b1;
+	outline: none;
+	background: #fff;
+}
+
+/* ---- プレビューの入力欄（操作不可） ---- */
+.wpef-pv-input {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 9px 11px;
+	border: 1px solid #8c8f94;
+	border-radius: 4px;
+	background: #fff;
+	color: #50575e;
+}
+
+.wpef-pv-options {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.wpef-pv-option,
+.wpef-pv-consent {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: #1d2327;
+}
+
+.wpef-pv-consent .wpef-inline-label {
+	font-weight: 400;
+}
+
+.wpef-pv-help {
+	font-size: 12px;
+	color: #50575e;
+}
+
+.wpef-req {
+	color: #fff;
+	background: #d63638;
 	font-size: 11px;
-	color: #787c82;
+	font-weight: 600;
+	line-height: 1.6;
+	padding: 1px 6px;
+	border-radius: 3px;
+	white-space: nowrap;
 }
 
-.wpef-field-actions {
-	flex-shrink: 0;
-	display: flex;
-	gap: 2px;
+/* ---- 送信ボタン（プレビュー） ---- */
+.wpef-prev-actions {
+	grid-column: span 12;
+	margin-top: 8px;
 }
 
-/* 単一カラムの設定（プレビューは「プレビュー」タブに集約） */
-.wpef-field-settings {
-	display: flex;
-	flex-direction: column;
-	gap: 18px;
+.wpef-prev-submit {
+	display: inline-block;
+	padding: 10px 22px;
+	border: 0;
+	border-radius: 4px;
+	background: #2271b1;
+	color: #fff;
+	font-size: 15px;
+	cursor: default;
 }
 
-/* ---- 2カラム（左:設定 / 右:プレビュー） ---- */
-.wpef-cols {
-	display: flex;
-	gap: 28px;
-	align-items: flex-start;
-}
-
-.wpef-col-settings {
-	flex: 1 1 55%;
-	min-width: 0;
-	display: flex;
-	flex-direction: column;
-	gap: 18px;
-}
-
-.wpef-col-preview {
-	flex: 1 1 45%;
-	min-width: 0;
-	padding: 16px 18px;
-	background: #f6f7f7;
-	border: 1px solid #e0e0e0;
-	border-radius: 6px;
-}
-
-/* ---- 左カラムの操作 ---- */
+/* ---- 詳細設定内のコントロール ---- */
 .wpef-ctrl-label {
 	font-weight: 600;
 	margin: 0 0 8px;
-}
-
-.wpef-advanced {
-	margin-top: 4px;
-	padding-top: 14px;
-	border-top: 1px solid #f0f0f1;
 }
 
 .wpef-advanced > summary {
@@ -144,12 +292,40 @@
 	margin-bottom: 12px;
 }
 
-/* 横並び設定の間隔。 */
 .wpef-row {
 	gap: 16px;
 }
 
-/* ---- 横幅ピッカー（比率バーで視覚的に選ぶ） ---- */
+/* 選択肢エディタ */
+.wpef-options-editor {
+	margin: 4px 0;
+	padding: 14px;
+	background: #f6f7f7;
+	border-radius: 4px;
+}
+
+.wpef-opt-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 10px;
+}
+
+.wpef-opt-input {
+	flex: 1;
+	min-width: 0;
+	padding: 7px 9px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+}
+
+/* 横幅ピッカー */
+.wpef-cols-badge {
+	font-size: 11px;
+	color: #787c82;
+	font-weight: 400;
+}
+
 .wpef-width-picker {
 	display: flex;
 	flex-wrap: wrap;
@@ -167,7 +343,6 @@
 	border-radius: 6px;
 	background: #fff;
 	cursor: pointer;
-	transition: border-color 0.1s, box-shadow 0.1s;
 }
 
 .wpef-wbtn:hover {
@@ -207,230 +382,20 @@
 	color: #50575e;
 }
 
-/* ---- 選択肢エディタ ---- */
-.wpef-options-editor {
-	margin: 4px 0;
-	padding: 14px;
-	background: #fff;
-	border: 1px solid #e0e0e0;
-	border-radius: 4px;
-}
-
-.wpef-opt-row {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	margin-bottom: 10px;
-}
-
-.wpef-opt-input {
-	flex: 1;
-	min-width: 0;
-	padding: 7px 9px;
-	border: 1px solid #dcdcde;
-	border-radius: 4px;
-}
-
-/* ---- 右カラムのプレビュー ---- */
-.wpef-pv-caption {
-	display: block;
-	margin-bottom: 12px;
-	font-size: 11px;
-	font-weight: 600;
-	letter-spacing: 0.05em;
-	color: #787c82;
-	text-transform: uppercase;
-}
-
-.wpef-pv-body {
+/* ---- 項目追加 ---- */
+.wpef-add-card {
+	margin-top: 16px;
 	padding: 16px;
-	background: #fff;
-	border: 1px solid #f0f0f1;
-	border-radius: 6px;
-}
-
-.wpef-pv-field {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-}
-
-.wpef-pv-label {
-	font-weight: 600;
-	font-size: 14px;
-}
-
-.wpef-req {
-	display: inline-block;
-	margin-left: 6px;
-	padding: 1px 6px;
-	font-size: 11px;
-	font-weight: 600;
-	line-height: 1.6;
-	color: #fff;
-	background: #d63638;
-	border-radius: 3px;
-	vertical-align: middle;
-}
-
-.wpef-pv-input {
-	width: 100%;
-	box-sizing: border-box;
-	padding: 9px 11px;
-	border: 1px solid #8c8f94;
-	border-radius: 4px;
-	background: #fff;
-	color: #50575e;
-}
-
-.wpef-pv-options {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-}
-
-.wpef-pv-option,
-.wpef-pv-consent {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	color: #1d2327;
-}
-
-.wpef-pv-help {
-	font-size: 12px;
-	color: #50575e;
-}
-
-.wpef-pv-heading {
-	margin: 0;
-	font-size: 1.4em;
-}
-
-.wpef-pv-para {
-	margin: 0;
-}
-
-/* ---- プレビュータブ（全体表示・並べ替えのみ） ---- */
-.wpef-fullpreview-note {
-	margin: 0 0 16px;
-	padding: 10px 12px;
-	background: #f0f6fc;
-	border-left: 4px solid #2271b1;
-	color: #1d2327;
-}
-
-.wpef-fullpreview-form {
-	max-width: 640px;
-	padding: 24px;
-	background: #fff;
+	background: #f6f7f7;
 	border: 1px solid #e0e0e0;
 	border-radius: 6px;
-	display: grid;
-	grid-template-columns: repeat( 12, 1fr );
-	gap: 12px;
-	align-items: start;
 }
 
-.wpef-prev-item {
-	position: relative;
-	grid-column: span 12;
-	padding: 10px 14px 10px 10px;
-	border: 1px dashed #dcdcde;
-	border-radius: 6px;
-	background: #fff;
-}
-
-.wpef-prev-item:hover {
-	border-color: #2271b1;
-}
-
-.wpef-fullpreview-form > .wpef-col-1 { grid-column: span 1; }
-.wpef-fullpreview-form > .wpef-col-2 { grid-column: span 2; }
-.wpef-fullpreview-form > .wpef-col-3 { grid-column: span 3; }
-.wpef-fullpreview-form > .wpef-col-4 { grid-column: span 4; }
-.wpef-fullpreview-form > .wpef-col-5 { grid-column: span 5; }
-.wpef-fullpreview-form > .wpef-col-6 { grid-column: span 6; }
-.wpef-fullpreview-form > .wpef-col-7 { grid-column: span 7; }
-.wpef-fullpreview-form > .wpef-col-8 { grid-column: span 8; }
-.wpef-fullpreview-form > .wpef-col-9 { grid-column: span 9; }
-.wpef-fullpreview-form > .wpef-col-10 { grid-column: span 10; }
-.wpef-fullpreview-form > .wpef-col-11 { grid-column: span 11; }
-.wpef-fullpreview-form > .wpef-col-12 { grid-column: span 12; }
-
-.wpef-prev-toolbar {
+.wpef-add-buttons {
 	display: flex;
-	align-items: center;
-	gap: 4px;
-	margin-bottom: 8px;
-	padding-bottom: 6px;
-	border-bottom: 1px solid #f0f0f1;
-}
-
-.wpef-prev-toolbar .wpef-drag-handle {
-	cursor: grab;
-	margin-right: 2px;
-}
-
-.wpef-prev-cols {
-	margin-left: auto;
-	font-size: 11px;
-	color: #787c82;
-}
-
-.wpef-prev-field {
-	min-width: 0;
-}
-
-/* 右端のリサイズハンドル。 */
-.wpef-resize-handle {
-	position: absolute;
-	top: 0;
-	right: 0;
-	width: 10px;
-	height: 100%;
-	cursor: ew-resize;
-	border-radius: 0 6px 6px 0;
-	touch-action: none;
-}
-
-.wpef-resize-handle::before {
-	content: "";
-	position: absolute;
-	top: 50%;
-	right: 3px;
-	width: 3px;
-	height: 28px;
-	margin-top: -14px;
-	background: #c3c4c7;
-	border-radius: 2px;
-}
-
-.wpef-prev-item:hover .wpef-resize-handle::before {
-	background: #2271b1;
-}
-
-/* リサイズ中は全体を ew-resize に。 */
-body.wpef-resizing,
-body.wpef-resizing * {
-	cursor: ew-resize !important;
-	user-select: none;
-}
-
-.wpef-prev-actions {
-	grid-column: span 12;
+	flex-wrap: wrap;
+	gap: 10px;
 	margin-top: 12px;
-}
-
-.wpef-prev-submit {
-	display: inline-block;
-	padding: 10px 22px;
-	border: 0;
-	border-radius: 4px;
-	background: #2271b1;
-	color: #fff;
-	font-size: 15px;
-	cursor: default;
 }
 
 /* ---- 設定タブのパネル ---- */
@@ -449,37 +414,30 @@ body.wpef-resizing * {
 	margin-top: 16px;
 }
 
-/* ---- 項目追加 ---- */
-.wpef-add-card {
-	margin-top: 8px;
-}
-
-.wpef-add-buttons {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 10px;
-	margin-top: 12px;
-}
-
 /* ---- スマホ対応 ---- */
 @media screen and ( max-width: 782px ) {
 	.wpef-form-builder {
 		max-width: 100%;
 	}
 
-	/* 2カラムを縦積みに（設定 → プレビューの順）。 */
-	.wpef-cols {
-		flex-direction: column;
-		gap: 18px;
+	/* 全項目を全幅に。 */
+	.wpef-fullpreview-form > * {
+		grid-column: span 12 !important;
 	}
 
-	/* 横並びの設定行も縦積みに。 */
+	/* ツールバーは常時表示（ホバーが無いため）。 */
+	.wpef-ef-toolbar {
+		opacity: 1;
+	}
+
 	.wpef-builder .wpef-row {
 		flex-direction: column !important;
 		align-items: stretch !important;
 	}
 
-	/* iOS の自動ズームを避けるため入力は 16px 以上に。 */
+	/* iOS の自動ズーム防止。 */
+	.wpef-inline-label,
+	.wpef-inline-heading,
 	.wpef-pv-input,
 	.wpef-opt-input,
 	.wpef-builder input[type="text"],
