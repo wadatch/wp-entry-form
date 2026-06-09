@@ -12,12 +12,15 @@
 		"env:clean": "wp-env clean all",
 		"env:cli": "wp-env run cli wp",
 		"env:logs": "wp-env logs",
+		"build:assets": "wp-scripts build",
+		"start": "wp-scripts start",
 		"build": "bash bin/build.sh"
 	},
 	"devDependencies": {
-		"@wordpress/env": "^10.10.0"
+		"@wordpress/env": "^10.10.0",
+		"@wordpress/scripts": "^30.0.0"
 	},
 	"engines": {
-		"node": ">=18"
+		"node": ">=20"
 	}
 }

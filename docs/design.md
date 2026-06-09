@@ -63,17 +63,23 @@ wp-entry-form/
 │   ├── class-wpef-admin.php           # メニュー登録・画面ルーティング
 │   ├── class-wpef-form-builder.php    # フォーム編集（ビルダー）
 │   ├── class-wpef-submissions-table.php # 送信一覧（WP_List_Table）
-│   ├── css/  js/                      # 管理画面アセット
-│   └── views/                         # 画面テンプレート
+│   ├── css/                           # 管理画面の素の CSS
+│   └── views/                         # 画面テンプレート（React のマウント先 DOM を含む）
 ├── public/
 │   ├── css/wpef-form.css
-│   └── js/wpef-form.js                # 進行的拡張（確認・AJAX 補助）
+│   └── js/wpef-form.js                # 進行的拡張（確認・AJAX 補助／ビルド不要の素の JS）
+├── src/                               # React ソース（@wordpress/scripts でビルド）
+│   ├── admin/index.js                 # フォームビルダー UI のエントリ
+│   └── block/index.js                 # ブロックエディタスクリプトのエントリ
+├── build/assets/                      # ビルド成果物（*.js / *.asset.php、Git 管理外・配布時生成）
+├── webpack.config.js                  # 複数エントリ・出力先 build/assets の設定
 ├── blocks/entry-form/
 │   ├── block.json
-│   ├── index.js                       # ビルド不要の素の JS（wp.element 利用）
-│   └── render.php                     # サーバ描画
+│   └── render.php                     # サーバ描画（エディタスクリプトは src/block を使用）
 └── languages/                         # 翻訳ファイル
 ```
+
+> フォームビルダー UI とブロックのエディタスクリプトは **`@wordpress/scripts`（React/JSX）でビルド**する（§11 の論点を確定）。`src/` がソース、`npm run build:assets` で `build/assets/<name>.js` と `<name>.asset.php`（依存・バージョン）を出力し、PHP 側は `asset.php` を使って `wp_enqueue_script` する。ビルド工程は `bin/build.sh`・CI（`ci.yml` のビルドチェック）・リリース（`release.yml` の Node セットアップ）に統合済み。`render.php` と `public/js/wpef-form.js` はビルド対象外の素の PHP/JS。
 
 ## 3. データモデル
 
@@ -257,7 +263,7 @@ wp-entry-form/
 | 送信詳細 | 1件分の全フィールド値・添付・メタ情報、ステータス変更、削除 |
 | 設定 | グローバル設定（既定の差出人、アンインストール時のデータ削除可否 など） |
 
-フォームビルダーの項目編集はビルド工程を持たない素の JavaScript（必要なら `wp.element`）で実装し、最終的に隠し入力へ JSON をシリアライズして保存する。
+フォームビルダーの項目編集は **`@wordpress/scripts`（React）でビルドする UI**（`src/admin/`）で実装し、最終的に隠し入力へ JSON をシリアライズして標準 POST で保存する。
 
 ## 9. 拡張ポイント（フック）
 
@@ -275,9 +281,13 @@ wp-entry-form/
 - text domain `wp-entry-form`、`languages/` に翻訳。
 - `uninstall.php`: 設定に応じてテーブル・オプション・アップロードファイルを削除（既定は保持寄り）。
 
-## 11. 未確定・要相談事項
+## 11. 決定事項・残課題
 
-- フォームビルダーの UI を素の JS で作るか、`@wordpress/scripts` のビルド工程を導入するか（後者は React で作りやすいが導入コストあり）。
-- CSV の文字コード（Excel 互換のため UTF-8 BOM 付き or Shift_JIS）。
-- レート制限の保存先（transient か専用テーブルか）。
-- 添付ファイルのウイルススキャン要否。
+確定済み（2026-06-09）:
+- フォームビルダー／ブロックの UI は **`@wordpress/scripts`（React）でビルド**する（§2・§8）。
+- CSV の文字コードは **UTF-8（BOM 付き）**。Excel 互換と国際化を両立する。
+- レート制限の保存先は **transient**（専用テーブルを追加しない）。
+- 添付ファイルのウイルススキャンは **v0.1.0 では実施しない**（拡張子・MIME・サイズ検証のみ）。
+
+残課題（将来検討）:
+- 自動テスト（PHPUnit 等）の導入。v0.1 は wp-env 上の手動 E2E 検証で代替する。
