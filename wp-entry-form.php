@@ -50,6 +50,10 @@ define( 'WPEF_BASENAME', plugin_basename( __FILE__ ) );
 $wpef_includes = array(
 	'includes/class-wpef-install.php',
 	'includes/class-wpef-db.php',
+	'includes/class-wpef-fields.php',
+	'includes/class-wpef-validator.php',
+	'includes/class-wpef-renderer.php',
+	'includes/class-wpef-shortcode.php',
 );
 foreach ( $wpef_includes as $wpef_include ) {
 	$wpef_include_path = WPEF_PATH . $wpef_include;
@@ -73,6 +77,11 @@ function wpef_init() {
 
 	if ( class_exists( 'WPEF_Install' ) ) {
 		WPEF_Install::maybe_upgrade();
+	}
+
+	// フロント埋め込み（ショートコード）。
+	if ( class_exists( 'WPEF_Shortcode' ) ) {
+		WPEF_Shortcode::init();
 	}
 }
 add_action( 'plugins_loaded', 'wpef_init' );
