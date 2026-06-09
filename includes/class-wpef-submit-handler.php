@@ -52,26 +52,68 @@ class WPEF_Submit_Handler {
 		$confirm_enabled = ! empty( $settings['confirmation_screen'] );
 		$step            = isset( $_POST['wpef_step'] ) ? sanitize_key( wp_unslash( $_POST['wpef_step'] ) ) : 'input';
 
-		$values = self::collect_values( $form );
+		$values     = self::collect_values( $form );
+		$file_token = isset( $_POST['wpef_file_token'] ) ? sanitize_text_field( wp_unslash( $_POST['wpef_file_token'] ) ) : '';
 
-		// 確認画面から「戻る」: 入力画面へ値を保持して戻す。
+		// 確認画面から「戻る」: 入力画面へ値を保持して戻す（持ち越し中のファイルは破棄）。
 		if ( $confirm_enabled && isset( $_POST['wpef_back'] ) ) {
+			if ( '' !== $file_token ) {
+				WPEF_Files::discard( $file_token );
+			}
 			self::redirect_with_state( $return, $form_id, array( 'state' => 'input', 'values' => $values ) );
 		}
 
-		// 検証（ファイル項目は PR6 で対応するため検証対象から除外）。
+		// 値の検証（ファイル以外）。
 		$errors = WPEF_Validator::validate( self::validatable_form( $form ), $values );
+
+		// ファイル: 確認→送信ステップは入力時に持ち越したものを使い、それ以外は今回の $_FILES を検証・保存。
+		if ( 'submit' === $step && $confirm_enabled ) {
+			$file_metas = WPEF_Files::take( $file_token );
+		} else {
+			$result     = WPEF_Files::process( $form );
+			$errors      = array_merge( $errors, $result['errors'] );
+			$file_metas = $result['files'];
+		}
+
 		if ( ! empty( $errors ) ) {
+			// 既に保存したファイルがあれば孤立を避けて削除。
+			WPEF_Files::cleanup( $file_metas );
 			self::redirect_with_state( $return, $form_id, array( 'state' => 'input', 'values' => $values, 'errors' => $errors ) );
 		}
 
-		// 確認画面あり・入力ステップ → 確認画面へ。
+		// 確認画面あり・入力ステップ → ファイルを持ち越して確認画面へ。
 		if ( $confirm_enabled && 'input' === $step ) {
-			self::redirect_with_state( $return, $form_id, array( 'state' => 'confirm', 'values' => $values ) );
+			$ftoken = WPEF_Files::stash( $file_metas );
+			self::redirect_with_state(
+				$return,
+				$form_id,
+				array(
+					'state'      => 'confirm',
+					'values'     => $values,
+					'file_token' => $ftoken,
+					'files'      => self::file_name_map( $file_metas ),
+				)
+			);
 		}
 
 		// ここまで来たら確定保存（確認なしの入力 or 確認画面からの送信）。
-		self::save( $form, $values, $return );
+		self::save( $form, $values, $return, $file_metas );
+	}
+
+	/**
+	 * メタ配列を field_key => 元ファイル名 の表示用マップにする。
+	 *
+	 * @param array $metas メタ配列。
+	 * @return array
+	 */
+	private static function file_name_map( $metas ) {
+		$map = array();
+		foreach ( (array) $metas as $meta ) {
+			if ( ! empty( $meta['field_key'] ) ) {
+				$map[ $meta['field_key'] ] = isset( $meta['original_name'] ) ? $meta['original_name'] : '';
+			}
+		}
+		return $map;
 	}
 
 	/**
@@ -81,7 +123,7 @@ class WPEF_Submit_Handler {
 	 * @param array  $values サニタイズ済みの値。
 	 * @param string $return 戻り先 URL。
 	 */
-	private static function save( $form, $values, $return ) {
+	private static function save( $form, $values, $return, $file_metas = array() ) {
 		$form_id  = (int) $form['id'];
 		$settings = is_array( $form['settings'] ) ? $form['settings'] : array();
 
@@ -104,6 +146,11 @@ class WPEF_Submit_Handler {
 				'user_id'    => get_current_user_id() ? get_current_user_id() : null,
 			)
 		);
+
+		// 添付ファイルを送信に紐づける。
+		if ( $submission_id && ! empty( $file_metas ) ) {
+			WPEF_Files::attach_to_submission( $submission_id, $file_metas );
+		}
 
 		/**
 		 * 保存後フック（メール送信・外部連携など）。

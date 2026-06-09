@@ -103,7 +103,15 @@ class WPEF_Shortcode {
 			// 受付期間外は誰にもメッセージのみ表示（フォームは出さない）。
 			$inner .= '<div class="wpef-closed" role="status">' . wp_kses_post( wpautop( WPEF_Form_State::closed_message( $form, $pub ) ) ) . '</div>';
 		} elseif ( 'confirm' === $flow_state ) {
-			$inner .= WPEF_Renderer::render_confirmation( $form, isset( $flow['values'] ) ? $flow['values'] : array(), array( 'return' => $return ) );
+			$inner .= WPEF_Renderer::render_confirmation(
+				$form,
+				isset( $flow['values'] ) ? $flow['values'] : array(),
+				array(
+					'return'     => $return,
+					'file_token' => isset( $flow['file_token'] ) ? $flow['file_token'] : '',
+					'files'      => isset( $flow['files'] ) && is_array( $flow['files'] ) ? $flow['files'] : array(),
+				)
+			);
 		} else {
 			$inner .= WPEF_Renderer::render_form(
 				$form,

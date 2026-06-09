@@ -57,6 +57,7 @@ $wpef_includes = array(
 	'includes/class-wpef-shortcode.php',
 	'includes/class-wpef-submit-handler.php',
 	'includes/class-wpef-mailer.php',
+	'includes/class-wpef-files.php',
 	'includes/class-wpef-rest.php',
 );
 
@@ -105,6 +106,11 @@ function wpef_init() {
 	// メール（管理者通知・自動返信）。
 	if ( class_exists( 'WPEF_Mailer' ) ) {
 		WPEF_Mailer::init();
+	}
+
+	// 添付ファイル（ダウンロード・削除連携）。
+	if ( class_exists( 'WPEF_Files' ) ) {
+		WPEF_Files::init();
 	}
 
 	// REST（ブロックエディタ用フォーム一覧）。

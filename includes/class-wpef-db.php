@@ -400,6 +400,37 @@ class WPEF_DB {
 		return $rows ? $rows : array();
 	}
 
+	/**
+	 * 添付ファイルを1件取得する。
+	 *
+	 * @param int $id ファイル ID。
+	 * @return array|null
+	 */
+	public static function get_file( $id ) {
+		global $wpdb;
+		$table = WPEF_Install::files_table();
+		$row   = $wpdb->get_row(
+			$wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", absint( $id ) ),
+			ARRAY_A
+		);
+		return $row ? $row : null;
+	}
+
+	/**
+	 * 送信に紐づく添付ファイルのレコードを削除する（ディスク削除は WPEF_Files 側）。
+	 *
+	 * @param int $submission_id 送信 ID。
+	 * @return bool
+	 */
+	public static function delete_files_for_submission( $submission_id ) {
+		global $wpdb;
+		return false !== $wpdb->delete(
+			WPEF_Install::files_table(),
+			array( 'submission_id' => absint( $submission_id ) ),
+			array( '%d' )
+		);
+	}
+
 	/* ---------------------------------------------------------------------
 	 * Helpers
 	 * ------------------------------------------------------------------- */

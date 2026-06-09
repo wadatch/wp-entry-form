@@ -94,6 +94,8 @@ class WPEF_Renderer {
 
 		$submit_label = isset( $messages['submit_button'] ) && '' !== $messages['submit_button'] ? $messages['submit_button'] : __( '送信する', 'wp-entry-form' );
 		$back_label   = isset( $messages['back_button'] ) && '' !== $messages['back_button'] ? $messages['back_button'] : __( '戻る', 'wp-entry-form' );
+		$file_token   = isset( $context['file_token'] ) ? $context['file_token'] : '';
+		$file_names   = isset( $context['files'] ) && is_array( $context['files'] ) ? $context['files'] : array();
 
 		$out  = '<form class="wpef-form wpef-confirm" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		$out .= '<dl class="wpef-confirm-list">';
@@ -101,9 +103,19 @@ class WPEF_Renderer {
 		foreach ( $fields as $raw_field ) {
 			$field = WPEF_Fields::normalize_field( $raw_field );
 			$type  = $field['type'];
-			if ( '' === $field['key'] || ! WPEF_Fields::is_input_type( $type ) || 'file' === $type ) {
+			if ( '' === $field['key'] || ! WPEF_Fields::is_input_type( $type ) ) {
 				continue;
 			}
+
+			// ファイル項目は持ち越したファイル名を表示（値の hidden は不要。トークンで持ち越し）。
+			if ( 'file' === $type ) {
+				if ( isset( $file_names[ $field['key'] ] ) && '' !== $file_names[ $field['key'] ] ) {
+					$out .= '<dt class="wpef-confirm-label">' . esc_html( '' !== $field['label'] ? $field['label'] : $field['key'] ) . '</dt>';
+					$out .= '<dd class="wpef-confirm-value">' . esc_html( $file_names[ $field['key'] ] ) . '</dd>';
+				}
+				continue;
+			}
+
 			$value = isset( $values[ $field['key'] ] ) ? $values[ $field['key'] ] : '';
 			$out  .= '<dt class="wpef-confirm-label">' . esc_html( '' !== $field['label'] ? $field['label'] : $field['key'] ) . '</dt>';
 			$out  .= '<dd class="wpef-confirm-value">' . self::format_value( $field, $value ) . '</dd>';
@@ -116,6 +128,9 @@ class WPEF_Renderer {
 		$out .= '<input type="hidden" name="action" value="wpef_submit" />';
 		$out .= '<input type="hidden" name="wpef_form_id" value="' . esc_attr( $form_id ) . '" />';
 		$out .= '<input type="hidden" name="wpef_step" value="submit" />';
+		if ( '' !== $file_token ) {
+			$out .= '<input type="hidden" name="wpef_file_token" value="' . esc_attr( $file_token ) . '" />';
+		}
 		$out .= '<input type="hidden" name="wpef_return" value="' . esc_url( $return ) . '" />';
 		$out .= wp_nonce_field( 'wpef_submit_' . $form_id, 'wpef_nonce', true, false );
 
