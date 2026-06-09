@@ -12,7 +12,7 @@
  */
 import { createRoot, useState, useRef, Fragment } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { FaGear } from 'react-icons/fa6';
+import { FaGear, FaGripVertical, FaChevronLeft, FaChevronRight, FaTrashCan, FaPlus } from 'react-icons/fa6';
 import {
 	Button,
 	TextControl,
@@ -143,11 +143,11 @@ function OptionsEditor( { options, onChange } ) {
 						placeholder={ __( '選択肢のテキスト', 'wp-entry-form' ) }
 						onChange={ ( e ) => update( i, e.target.value ) }
 					/>
-					<Button isDestructive variant="tertiary" label={ __( '削除', 'wp-entry-form' ) } onClick={ () => onChange( list.filter( ( o, idx ) => idx !== i ) ) }>✕</Button>
+					<Button isDestructive variant="tertiary" label={ __( '削除', 'wp-entry-form' ) } onClick={ () => onChange( list.filter( ( o, idx ) => idx !== i ) ) }><FaTrashCan aria-hidden="true" /></Button>
 				</div>
 			) ) }
-			<Button variant="secondary" size="small" onClick={ () => onChange( [ ...list, { label: '', value: '' } ] ) }>
-				{ __( '＋ 選択肢を追加', 'wp-entry-form' ) }
+			<Button variant="secondary" size="small" icon={ <FaPlus aria-hidden="true" /> } onClick={ () => onChange( [ ...list, { label: '', value: '' } ] ) }>
+				{ __( '選択肢を追加', 'wp-entry-form' ) }
 			</Button>
 		</div>
 	);
@@ -376,13 +376,13 @@ function EditableField( { field, index, total, onChange, onRemove, onMove, onRes
 			onDrop={ ( e ) => dragHandlers.onDrop( e, index ) }
 		>
 			<div className="wpef-ef-toolbar">
-				<span className="wpef-drag-handle" draggable onDragStart={ ( e ) => dragHandlers.onDragStart( e, index ) } title={ __( 'ドラッグで移動', 'wp-entry-form' ) }>⠿</span>
+				<span className="wpef-drag-handle" draggable onDragStart={ ( e ) => dragHandlers.onDragStart( e, index ) } title={ __( 'ドラッグで移動', 'wp-entry-form' ) }><FaGripVertical aria-hidden="true" /></span>
 				<span className="wpef-ef-type">{ meta.label || field.type }</span>
 				<span className="wpef-ef-spacer" />
-				<Button size="small" variant="tertiary" disabled={ index === 0 } label={ __( '前へ', 'wp-entry-form' ) } onClick={ () => onMove( index, -1 ) }>←</Button>
-				<Button size="small" variant="tertiary" disabled={ index === total - 1 } label={ __( '次へ', 'wp-entry-form' ) } onClick={ () => onMove( index, 1 ) }>→</Button>
+				<Button size="small" variant="tertiary" disabled={ index === 0 } label={ __( '前へ', 'wp-entry-form' ) } onClick={ () => onMove( index, -1 ) }><FaChevronLeft aria-hidden="true" /></Button>
+				<Button size="small" variant="tertiary" disabled={ index === total - 1 } label={ __( '次へ', 'wp-entry-form' ) } onClick={ () => onMove( index, 1 ) }><FaChevronRight aria-hidden="true" /></Button>
 				<Button size="small" variant={ open ? 'primary' : 'tertiary' } aria-expanded={ open } label={ __( '詳細設定', 'wp-entry-form' ) } onClick={ () => setOpen( ! open ) }><FaGear aria-hidden="true" /></Button>
-				<Button size="small" isDestructive variant="tertiary" label={ __( '削除', 'wp-entry-form' ) } onClick={ () => onRemove( index ) }>✕</Button>
+				<Button size="small" isDestructive variant="tertiary" label={ __( '削除', 'wp-entry-form' ) } onClick={ () => onRemove( index ) }><FaTrashCan aria-hidden="true" /></Button>
 			</div>
 
 			<div className="wpef-ef-body">{ body }</div>
@@ -459,8 +459,8 @@ function BuilderCanvas( { fields, settings, onChange, onRemove, onMove, onResize
 				<strong>{ __( '入力項目を追加', 'wp-entry-form' ) }</strong>
 				<div className="wpef-add-buttons">
 					{ FIELD_TYPES.map( ( t ) => (
-						<Button key={ t.type } variant="secondary" size="small" onClick={ () => onAdd( t.type ) }>
-							＋ { t.label }
+						<Button key={ t.type } variant="secondary" size="small" icon={ <FaPlus aria-hidden="true" /> } onClick={ () => onAdd( t.type ) }>
+							{ t.label }
 						</Button>
 					) ) }
 				</div>
