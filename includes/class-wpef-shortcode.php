@@ -32,6 +32,28 @@ class WPEF_Shortcode {
 	public static function register_assets() {
 		wp_register_style( 'wpef-form', WPEF_URL . 'public/css/wpef-form.css', array(), WPEF_VERSION );
 		wp_register_script( 'wpef-form', WPEF_URL . 'public/js/wpef-form.js', array(), WPEF_VERSION, true );
+
+		// リアルタイム検証のメッセージ（翻訳対応のままサーバ側から渡す）。%s/%d は JS で置換。
+		wp_localize_script(
+			'wpef-form',
+			'wpefForm',
+			array(
+				'messages' => array(
+					/* translators: %s: フィールドのラベル */
+					'required'  => __( '「%s」は必須です。', 'wp-entry-form' ),
+					'consent'   => __( '同意が必要です。', 'wp-entry-form' ),
+					'email'     => __( 'メールアドレスの形式が正しくありません。', 'wp-entry-form' ),
+					'url'       => __( 'URL の形式が正しくありません。', 'wp-entry-form' ),
+					'number'    => __( '数値を入力してください。', 'wp-entry-form' ),
+					/* translators: %s: 最小値 */
+					'min'       => __( '%s 以上の値を入力してください。', 'wp-entry-form' ),
+					/* translators: %s: 最大値 */
+					'max'       => __( '%s 以下の値を入力してください。', 'wp-entry-form' ),
+					/* translators: %d: 最大文字数 */
+					'maxlength' => __( '%d 文字以内で入力してください。', 'wp-entry-form' ),
+				),
+			)
+		);
 	}
 
 	/**
@@ -55,7 +77,37 @@ class WPEF_Shortcode {
 		wp_enqueue_style( 'wpef-form' );
 		wp_enqueue_script( 'wpef-form' );
 
-		return '<div class="wpef-form-wrap">' . WPEF_Renderer::render_form( $form ) . '</div>';
+		// 戻り先 URL（このページ。トークンは除去）。
+		$return = get_permalink();
+		$return = $return ? remove_query_arg( 'wpef_token', $return ) : home_url( '/' );
+
+		// 送信フローの状態（PRG のトークン経由）を取り出す。
+		$token = isset( $_GET['wpef_token'] ) ? sanitize_text_field( wp_unslash( $_GET['wpef_token'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$flow  = class_exists( 'WPEF_Submit_Handler' ) ? WPEF_Submit_Handler::consume_flow( $token, $id ) : null;
+		$state = is_array( $flow ) && isset( $flow['state'] ) ? $flow['state'] : 'input';
+
+		$inner = '<span id="wpef-form-' . (int) $id . '"></span>';
+
+		if ( 'success' === $state ) {
+			$settings = is_array( $form['settings'] ) ? $form['settings'] : array();
+			$message  = isset( $settings['messages']['success'] ) && '' !== $settings['messages']['success']
+				? $settings['messages']['success']
+				: __( 'ご応募ありがとうございました。', 'wp-entry-form' );
+			$inner .= '<div class="wpef-success" role="status">' . wp_kses_post( wpautop( $message ) ) . '</div>';
+		} elseif ( 'confirm' === $state ) {
+			$inner .= WPEF_Renderer::render_confirmation( $form, isset( $flow['values'] ) ? $flow['values'] : array(), array( 'return' => $return ) );
+		} else {
+			$inner .= WPEF_Renderer::render_form(
+				$form,
+				array(
+					'return' => $return,
+					'values' => is_array( $flow ) && isset( $flow['values'] ) ? $flow['values'] : array(),
+					'errors' => is_array( $flow ) && isset( $flow['errors'] ) ? $flow['errors'] : array(),
+				)
+			);
+		}
+
+		return '<div class="wpef-form-wrap">' . $inner . '</div>';
 	}
 
 	/**

@@ -35,6 +35,7 @@ class WPEF_Renderer {
 
 		$values = isset( $context['values'] ) && is_array( $context['values'] ) ? $context['values'] : array();
 		$errors = isset( $context['errors'] ) && is_array( $context['errors'] ) ? $context['errors'] : array();
+		$return = isset( $context['return'] ) ? $context['return'] : '';
 
 		$messages       = isset( $settings['messages'] ) && is_array( $settings['messages'] ) ? $settings['messages'] : array();
 		$submit_label   = isset( $messages['submit_button'] ) && '' !== $messages['submit_button'] ? $messages['submit_button'] : __( '送信する', 'wp-entry-form' );
@@ -64,6 +65,7 @@ class WPEF_Renderer {
 		$out .= '<input type="hidden" name="action" value="wpef_submit" />';
 		$out .= '<input type="hidden" name="wpef_form_id" value="' . esc_attr( $form_id ) . '" />';
 		$out .= '<input type="hidden" name="wpef_step" value="input" />';
+		$out .= '<input type="hidden" name="wpef_return" value="' . esc_url( $return ) . '" />';
 		$out .= wp_nonce_field( 'wpef_submit_' . $form_id, 'wpef_nonce', true, false );
 
 		$out .= '<div class="wpef-actions">';
@@ -73,6 +75,124 @@ class WPEF_Renderer {
 		$out .= '</form>';
 
 		return $out;
+	}
+
+	/**
+	 * 確認画面を描画する（入力値を読み取り表示 + hidden で保持）。
+	 *
+	 * @param array $form    フォーム。
+	 * @param array $values  サニタイズ済みの入力値。
+	 * @param array $context return を含む任意コンテキスト。
+	 * @return string
+	 */
+	public static function render_confirmation( $form, $values, $context = array() ) {
+		$form_id  = isset( $form['id'] ) ? (int) $form['id'] : 0;
+		$fields   = isset( $form['fields'] ) && is_array( $form['fields'] ) ? $form['fields'] : array();
+		$settings = isset( $form['settings'] ) && is_array( $form['settings'] ) ? $form['settings'] : array();
+		$messages = isset( $settings['messages'] ) && is_array( $settings['messages'] ) ? $settings['messages'] : array();
+		$return   = isset( $context['return'] ) ? $context['return'] : '';
+
+		$submit_label = isset( $messages['submit_button'] ) && '' !== $messages['submit_button'] ? $messages['submit_button'] : __( '送信する', 'wp-entry-form' );
+		$back_label   = isset( $messages['back_button'] ) && '' !== $messages['back_button'] ? $messages['back_button'] : __( '戻る', 'wp-entry-form' );
+
+		$out  = '<form class="wpef-form wpef-confirm" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		$out .= '<dl class="wpef-confirm-list">';
+
+		foreach ( $fields as $raw_field ) {
+			$field = WPEF_Fields::normalize_field( $raw_field );
+			$type  = $field['type'];
+			if ( '' === $field['key'] || ! WPEF_Fields::is_input_type( $type ) || 'file' === $type ) {
+				continue;
+			}
+			$value = isset( $values[ $field['key'] ] ) ? $values[ $field['key'] ] : '';
+			$out  .= '<dt class="wpef-confirm-label">' . esc_html( '' !== $field['label'] ? $field['label'] : $field['key'] ) . '</dt>';
+			$out  .= '<dd class="wpef-confirm-value">' . self::format_value( $field, $value ) . '</dd>';
+			// 値を hidden で保持（送信ステップへ引き継ぐ）。
+			$out  .= self::hidden_values( $field['key'], $value );
+		}
+
+		$out .= '</dl>';
+
+		$out .= '<input type="hidden" name="action" value="wpef_submit" />';
+		$out .= '<input type="hidden" name="wpef_form_id" value="' . esc_attr( $form_id ) . '" />';
+		$out .= '<input type="hidden" name="wpef_step" value="submit" />';
+		$out .= '<input type="hidden" name="wpef_return" value="' . esc_url( $return ) . '" />';
+		$out .= wp_nonce_field( 'wpef_submit_' . $form_id, 'wpef_nonce', true, false );
+
+		$out .= '<div class="wpef-actions">';
+		$out .= '<button type="submit" name="wpef_back" value="1" class="wpef-back">' . esc_html( $back_label ) . '</button> ';
+		$out .= '<button type="submit" class="wpef-submit">' . esc_html( $submit_label ) . '</button>';
+		$out .= '</div>';
+
+		$out .= '</form>';
+
+		return $out;
+	}
+
+	/**
+	 * 確認画面の値表示用に、型に応じて人が読める文字列へ整形する。
+	 *
+	 * @param array $field フィールド。
+	 * @param mixed $value 値。
+	 * @return string エスケープ済み HTML。
+	 */
+	private static function format_value( $field, $value ) {
+		if ( 'consent' === $field['type'] ) {
+			return esc_html( ! empty( $value ) ? __( '同意する', 'wp-entry-form' ) : __( '同意しない', 'wp-entry-form' ) );
+		}
+		if ( is_array( $value ) ) {
+			$labels = array_map(
+				function ( $v ) use ( $field ) {
+					return self::option_label( $field, (string) $v );
+				},
+				$value
+			);
+			return esc_html( implode( '、', $labels ) );
+		}
+		if ( WPEF_Fields::has_options( $field['type'] ) ) {
+			return esc_html( self::option_label( $field, (string) $value ) );
+		}
+		if ( 'textarea' === $field['type'] ) {
+			return nl2br( esc_html( (string) $value ) );
+		}
+		return esc_html( (string) $value );
+	}
+
+	/**
+	 * 選択肢の value に対応するラベルを返す（無ければ value 自身）。
+	 *
+	 * @param array  $field フィールド。
+	 * @param string $value 値。
+	 * @return string
+	 */
+	private static function option_label( $field, $value ) {
+		foreach ( self::options( $field ) as $opt ) {
+			if ( $opt['value'] === $value ) {
+				return $opt['label'];
+			}
+		}
+		return $value;
+	}
+
+	/**
+	 * 値を hidden input として出力する（配列は複数 hidden）。
+	 *
+	 * @param string $key   フィールドキー。
+	 * @param mixed  $value 値。
+	 * @return string
+	 */
+	private static function hidden_values( $key, $value ) {
+		if ( is_array( $value ) ) {
+			$out = '';
+			foreach ( $value as $v ) {
+				$out .= '<input type="hidden" name="' . esc_attr( 'wpef[' . $key . '][]' ) . '" value="' . esc_attr( (string) $v ) . '" />';
+			}
+			return $out;
+		}
+		if ( is_bool( $value ) ) {
+			$value = $value ? '1' : '';
+		}
+		return '<input type="hidden" name="' . esc_attr( 'wpef[' . $key . ']' ) . '" value="' . esc_attr( (string) $value ) . '" />';
 	}
 
 	/**
@@ -124,7 +244,21 @@ class WPEF_Renderer {
 			$wrap_class .= ' wpef-has-error';
 		}
 
-		$out = '<div class="' . esc_attr( $wrap_class ) . '">';
+		// クライアント側のリアルタイム検証用メタ（JS が読む。サーバ側検証は別途実施）。
+		$data  = ' data-wpef-type="' . esc_attr( $type ) . '"';
+		$data .= $field['required'] ? ' data-wpef-required="1"' : '';
+		$validation = is_array( $field['validation'] ) ? $field['validation'] : array();
+		if ( isset( $validation['max_length'] ) && '' !== $validation['max_length'] && null !== $validation['max_length'] ) {
+			$data .= ' data-wpef-maxlength="' . esc_attr( (int) $validation['max_length'] ) . '"';
+		}
+		if ( isset( $validation['min'] ) && '' !== $validation['min'] && null !== $validation['min'] ) {
+			$data .= ' data-wpef-min="' . esc_attr( $validation['min'] ) . '"';
+		}
+		if ( isset( $validation['max'] ) && '' !== $validation['max'] && null !== $validation['max'] ) {
+			$data .= ' data-wpef-max="' . esc_attr( $validation['max'] ) . '"';
+		}
+
+		$out = '<div class="' . esc_attr( $wrap_class ) . '"' . $data . '>';
 
 		// consent は単一チェックでラベルを後置するため別扱い。
 		if ( 'consent' === $type ) {

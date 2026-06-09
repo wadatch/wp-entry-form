@@ -54,6 +54,7 @@ $wpef_includes = array(
 	'includes/class-wpef-validator.php',
 	'includes/class-wpef-renderer.php',
 	'includes/class-wpef-shortcode.php',
+	'includes/class-wpef-submit-handler.php',
 	'includes/class-wpef-rest.php',
 	'admin/class-wpef-admin.php',
 	'admin/class-wpef-form-builder.php',
@@ -85,6 +86,11 @@ function wpef_init() {
 	// フロント埋め込み（ショートコード）。
 	if ( class_exists( 'WPEF_Shortcode' ) ) {
 		WPEF_Shortcode::init();
+	}
+
+	// 送信フロー（admin-post）。
+	if ( class_exists( 'WPEF_Submit_Handler' ) ) {
+		WPEF_Submit_Handler::init();
 	}
 
 	// REST（ブロックエディタ用フォーム一覧）。
