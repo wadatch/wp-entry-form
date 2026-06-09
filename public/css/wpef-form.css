@@ -159,3 +159,42 @@
 	opacity: 0.6;
 	cursor: default;
 }
+
+.wpef-back {
+	display: inline-block;
+	padding: 0.6em 1.4em;
+	margin-right: 0.5em;
+	border: 1px solid #8c8f94;
+	border-radius: 4px;
+	background: #f6f7f7;
+	color: #1d2327;
+	font-size: 1em;
+	cursor: pointer;
+}
+
+/* 確認画面 */
+.wpef-confirm-list {
+	margin: 0 0 1.5em;
+}
+
+.wpef-confirm-label {
+	font-weight: 600;
+	margin-top: 1em;
+}
+
+.wpef-confirm-value {
+	margin: 0.25em 0 0;
+	padding: 0.5em 0.6em;
+	background: #f6f7f7;
+	border-radius: 4px;
+	white-space: pre-wrap;
+}
+
+/* 完了メッセージ */
+.wpef-success {
+	padding: 1em 1.25em;
+	border: 1px solid #00a32a;
+	border-radius: 4px;
+	background: #f0fbf2;
+	color: #1d2327;
+}
