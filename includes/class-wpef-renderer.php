@@ -48,10 +48,12 @@ class WPEF_Renderer {
 			$out .= '<div class="wpef-form-errors" role="alert">' . esc_html__( '入力内容に誤りがあります。各項目をご確認ください。', 'wp-entry-form' ) . '</div>';
 		}
 
-		// 各フィールド。
+		// 各フィールド（横並び可能なグリッド内に配置）。
+		$out .= '<div class="wpef-grid">';
 		foreach ( $fields as $raw_field ) {
 			$out .= self::render_field( $raw_field, $form_id, $values, $errors );
 		}
+		$out .= '</div>';
 
 		// ハニーポット（人間には見えないダミー項目）。
 		if ( $honeypot_on ) {
@@ -90,12 +92,14 @@ class WPEF_Renderer {
 			return '';
 		}
 
+		$width = self::width_class( $field );
+
 		// 表示専用要素。
 		if ( 'heading' === $type ) {
-			return '<h3 class="wpef-heading">' . esc_html( $field['label'] ) . '</h3>';
+			return '<h3 class="wpef-heading ' . esc_attr( $width ) . '">' . esc_html( $field['label'] ) . '</h3>';
 		}
 		if ( 'paragraph' === $type ) {
-			return '<div class="wpef-paragraph">' . wp_kses_post( wpautop( $field['label'] ) ) . '</div>';
+			return '<div class="wpef-paragraph ' . esc_attr( $width ) . '">' . wp_kses_post( wpautop( $field['label'] ) ) . '</div>';
 		}
 
 		$key = $field['key'];
@@ -115,7 +119,7 @@ class WPEF_Renderer {
 			$describe[] = $id . '-error';
 		}
 
-		$wrap_class = 'wpef-field wpef-field-' . sanitize_html_class( $type );
+		$wrap_class = 'wpef-field wpef-field-' . sanitize_html_class( $type ) . ' ' . $width;
 		if ( $has_error ) {
 			$wrap_class .= ' wpef-has-error';
 		}
@@ -311,6 +315,18 @@ class WPEF_Renderer {
 	 */
 	private static function required_badge() {
 		return '<span class="wpef-required" aria-hidden="true">[' . esc_html__( '必須', 'wp-entry-form' ) . ']</span>';
+	}
+
+	/**
+	 * フィールドの横幅クラスを返す（グリッドの列幅）。
+	 *
+	 * @param array $field 正規化済みフィールド。
+	 * @return string 例: wpef-w-full / wpef-w-half。
+	 */
+	private static function width_class( $field ) {
+		$allowed = array( 'full', 'two_thirds', 'half', 'third', 'quarter' );
+		$width   = isset( $field['width'] ) && in_array( $field['width'], $allowed, true ) ? $field['width'] : 'full';
+		return 'wpef-w-' . $width;
 	}
 
 	/**

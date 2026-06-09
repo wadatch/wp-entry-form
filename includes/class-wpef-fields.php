@@ -151,6 +151,7 @@ class WPEF_Fields {
 				'placeholder' => '',
 				'help'        => '',
 				'default'     => '',
+				'width'       => 'full',
 				'options'     => array(),
 				'validation'  => array(),
 				'file'        => array(),

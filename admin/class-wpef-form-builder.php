@@ -256,6 +256,7 @@ class WPEF_Form_Builder {
 			$field = array(
 				'type'  => $type,
 				'label' => isset( $raw['label'] ) ? sanitize_text_field( $raw['label'] ) : '',
+				'width' => self::sanitize_width( isset( $raw['width'] ) ? $raw['width'] : 'full' ),
 			);
 
 			// 表示専用要素はキー不要。
@@ -298,6 +299,18 @@ class WPEF_Form_Builder {
 		}
 
 		return $clean;
+	}
+
+	/**
+	 * 横幅（グリッドの列幅）をサニタイズする。
+	 *
+	 * @param string $width 生の値。
+	 * @return string full / two_thirds / half / third / quarter。
+	 */
+	private static function sanitize_width( $width ) {
+		$allowed = array( 'full', 'two_thirds', 'half', 'third', 'quarter' );
+		$width   = is_string( $width ) ? $width : 'full';
+		return in_array( $width, $allowed, true ) ? $width : 'full';
 	}
 
 	/**

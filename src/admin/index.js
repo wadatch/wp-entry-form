@@ -33,6 +33,15 @@ const FIELD_TYPES = data.fieldTypes || [];
 // プレースホルダ（入力欄のヒント）を持てる型。
 const HINT_TYPES = [ 'text', 'textarea', 'email', 'tel', 'url', 'number', 'date' ];
 
+// 横幅（グリッドの列幅）の選択肢。スマホでは自動的に全幅になる。
+const WIDTHS = [
+	{ value: 'full', label: __( '全幅', 'wp-entry-form' ) },
+	{ value: 'two_thirds', label: __( '2/3', 'wp-entry-form' ) },
+	{ value: 'half', label: __( '1/2', 'wp-entry-form' ) },
+	{ value: 'third', label: __( '1/3', 'wp-entry-form' ) },
+	{ value: 'quarter', label: __( '1/4', 'wp-entry-form' ) },
+];
+
 function typeMeta( type ) {
 	return FIELD_TYPES.find( ( t ) => t.type === type ) || { input: true, hasOptions: false, multiple: false, display: false };
 }
@@ -80,7 +89,7 @@ function defaultSettings( raw ) {
 
 function newField( type ) {
 	const meta = typeMeta( type );
-	const f = { type, label: '' };
+	const f = { type, label: '', width: 'full' };
 	if ( meta.input ) {
 		f.key = '';
 		f.required = false;
@@ -201,6 +210,19 @@ function FieldPreview( { field } ) {
 /* ------------------------------------------------------------------ */
 /* 左カラム: フィールドの設定                                          */
 /* ------------------------------------------------------------------ */
+function WidthControl( { field, patch } ) {
+	return (
+		<SelectControl
+			label={ __( '横幅（列）', 'wp-entry-form' ) }
+			value={ field.width || 'full' }
+			options={ WIDTHS }
+			onChange={ ( v ) => patch( { width: v } ) }
+			help={ __( '狭い幅にすると項目を横に並べられます。スマホでは自動で全幅になります。', 'wp-entry-form' ) }
+			__nextHasNoMarginBottom
+		/>
+	);
+}
+
 function FieldSettings( { field, onChange } ) {
 	const meta = typeMeta( field.type );
 	const patch = ( p ) => onChange( { ...field, ...p } );
@@ -209,12 +231,15 @@ function FieldSettings( { field, onChange } ) {
 	// 見出し・説明文（表示専用）。
 	if ( meta.display ) {
 		return (
-			<TextControl
-				label={ field.type === 'heading' ? __( '見出しのテキスト', 'wp-entry-form' ) : __( '説明文のテキスト', 'wp-entry-form' ) }
-				value={ field.label || '' }
-				onChange={ ( v ) => patch( { label: v } ) }
-				__nextHasNoMarginBottom
-			/>
+			<Fragment>
+				<TextControl
+					label={ field.type === 'heading' ? __( '見出しのテキスト', 'wp-entry-form' ) : __( '説明文のテキスト', 'wp-entry-form' ) }
+					value={ field.label || '' }
+					onChange={ ( v ) => patch( { label: v } ) }
+					__nextHasNoMarginBottom
+				/>
+				<WidthControl field={ field } patch={ patch } />
+			</Fragment>
 		);
 	}
 
@@ -243,6 +268,7 @@ function FieldSettings( { field, onChange } ) {
 					__nextHasNoMarginBottom
 				/>
 				<ToggleControl label={ __( '同意を必須にする', 'wp-entry-form' ) } checked={ !! field.required } onChange={ ( v ) => patch( { required: v } ) } __nextHasNoMarginBottom />
+				<WidthControl field={ field } patch={ patch } />
 				{ advanced }
 			</Fragment>
 		);
@@ -260,6 +286,8 @@ function FieldSettings( { field, onChange } ) {
 			/>
 
 			<ToggleControl label={ __( '入力を必須にする', 'wp-entry-form' ) } checked={ !! field.required } onChange={ ( v ) => patch( { required: v } ) } __nextHasNoMarginBottom />
+
+			<WidthControl field={ field } patch={ patch } />
 
 			{ meta.hasOptions && (
 				<OptionsEditor options={ field.options || [] } onChange={ ( opts ) => patch( { options: opts } ) } />
@@ -367,7 +395,7 @@ function FieldCard( { field, index, total, onChange, onRemove, onMove, dragHandl
 function PreviewRow( { field, index, total, onMove, dragHandlers } ) {
 	return (
 		<div
-			className="wpef-prev-row"
+			className={ `wpef-prev-row wpef-w-${ field.width || 'full' }` }
 			draggable
 			onDragStart={ ( e ) => dragHandlers.onDragStart( e, index ) }
 			onDragOver={ dragHandlers.onDragOver }
