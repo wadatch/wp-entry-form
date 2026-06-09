@@ -20,26 +20,23 @@
 	margin-bottom: 0;
 }
 
-.wpef-grid > .wpef-w-two_thirds {
-	grid-column: span 8;
-}
-
-.wpef-grid > .wpef-w-half {
-	grid-column: span 6;
-}
-
-.wpef-grid > .wpef-w-third {
-	grid-column: span 4;
-}
-
-.wpef-grid > .wpef-w-quarter {
-	grid-column: span 3;
-}
+.wpef-grid > .wpef-col-1 { grid-column: span 1; }
+.wpef-grid > .wpef-col-2 { grid-column: span 2; }
+.wpef-grid > .wpef-col-3 { grid-column: span 3; }
+.wpef-grid > .wpef-col-4 { grid-column: span 4; }
+.wpef-grid > .wpef-col-5 { grid-column: span 5; }
+.wpef-grid > .wpef-col-6 { grid-column: span 6; }
+.wpef-grid > .wpef-col-7 { grid-column: span 7; }
+.wpef-grid > .wpef-col-8 { grid-column: span 8; }
+.wpef-grid > .wpef-col-9 { grid-column: span 9; }
+.wpef-grid > .wpef-col-10 { grid-column: span 10; }
+.wpef-grid > .wpef-col-11 { grid-column: span 11; }
+.wpef-grid > .wpef-col-12 { grid-column: span 12; }
 
 /* スマホでは全項目を全幅に。 */
 @media screen and ( max-width: 600px ) {
 	.wpef-grid > * {
-		grid-column: span 12;
+		grid-column: span 12 !important;
 	}
 }
 

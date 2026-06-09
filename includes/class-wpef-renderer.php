@@ -318,15 +318,15 @@ class WPEF_Renderer {
 	}
 
 	/**
-	 * フィールドの横幅クラスを返す（グリッドの列幅）。
+	 * フィールドの横幅クラスを返す（12カラム中の列数）。
 	 *
 	 * @param array $field 正規化済みフィールド。
-	 * @return string 例: wpef-w-full / wpef-w-half。
+	 * @return string 例: wpef-col-12 / wpef-col-6。
 	 */
 	private static function width_class( $field ) {
-		$allowed = array( 'full', 'two_thirds', 'half', 'third', 'quarter' );
-		$width   = isset( $field['width'] ) && in_array( $field['width'], $allowed, true ) ? $field['width'] : 'full';
-		return 'wpef-w-' . $width;
+		$cols = isset( $field['cols'] ) ? (int) $field['cols'] : 12;
+		$cols = max( 1, min( 12, $cols ) );
+		return 'wpef-col-' . $cols;
 	}
 
 	/**

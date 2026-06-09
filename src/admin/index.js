@@ -9,7 +9,7 @@
  * 状態は隠し input（name="wpef_fields" / "wpef_settings"）に JSON で書き出し、
  * 周囲の PHP フォームの標準 POST で保存される（ビルド: @wordpress/scripts）。
  */
-import { createRoot, useState, Fragment } from '@wordpress/element';
+import { createRoot, useState, useRef, Fragment } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import {
 	Button,
@@ -33,14 +33,30 @@ const FIELD_TYPES = data.fieldTypes || [];
 // プレースホルダ（入力欄のヒント）を持てる型。
 const HINT_TYPES = [ 'text', 'textarea', 'email', 'tel', 'url', 'number', 'date' ];
 
-// 横幅（グリッドの列幅）の選択肢。fill は見た目の比率バーの割合(%)。スマホでは自動的に全幅。
-const WIDTHS = [
-	{ value: 'full', label: __( '全幅', 'wp-entry-form' ), fill: 100 },
-	{ value: 'two_thirds', label: '2/3', fill: 66.66 },
-	{ value: 'half', label: '1/2', fill: 50 },
-	{ value: 'third', label: '1/3', fill: 33.33 },
-	{ value: 'quarter', label: '1/4', fill: 25 },
+// グリッドは12カラム。横幅はフィールドの cols（1〜12）で表す。
+const GRID_COLS = 12;
+
+// よく使う幅のプリセット（cols とプレビュー比率バーの割合）。
+const WIDTH_PRESETS = [
+	{ cols: 12, label: __( '全幅', 'wp-entry-form' ) },
+	{ cols: 8, label: '2/3' },
+	{ cols: 6, label: '1/2' },
+	{ cols: 4, label: '1/3' },
+	{ cols: 3, label: '1/4' },
 ];
+
+// 旧来の名前付き幅 → cols（後方互換）。
+const LEGACY_WIDTH_COLS = { full: 12, two_thirds: 8, half: 6, third: 4, quarter: 3 };
+
+function fieldCols( f ) {
+	if ( typeof f.cols === 'number' && f.cols >= 1 && f.cols <= GRID_COLS ) {
+		return Math.round( f.cols );
+	}
+	if ( f.width && LEGACY_WIDTH_COLS[ f.width ] ) {
+		return LEGACY_WIDTH_COLS[ f.width ];
+	}
+	return GRID_COLS;
+}
 
 function typeMeta( type ) {
 	return FIELD_TYPES.find( ( t ) => t.type === type ) || { input: true, hasOptions: false, multiple: false, display: false };
@@ -89,7 +105,7 @@ function defaultSettings( raw ) {
 
 function newField( type ) {
 	const meta = typeMeta( type );
-	const f = { type, label: '', width: 'full' };
+	const f = { type, label: '', cols: GRID_COLS };
 	if ( meta.input ) {
 		f.key = '';
 		f.required = false;
@@ -211,26 +227,26 @@ function FieldPreview( { field } ) {
 /* 左カラム: フィールドの設定                                          */
 /* ------------------------------------------------------------------ */
 function WidthControl( { field, patch } ) {
-	const current = field.width || 'full';
+	const current = fieldCols( field );
 	return (
 		<div className="wpef-width-control">
-			<p className="wpef-ctrl-label">{ __( '横幅', 'wp-entry-form' ) }</p>
+			<p className="wpef-ctrl-label">{ __( '横幅', 'wp-entry-form' ) } <span className="wpef-cols-badge">{ current }/{ GRID_COLS }</span></p>
 			<div className="wpef-width-picker" role="group" aria-label={ __( '横幅', 'wp-entry-form' ) }>
-				{ WIDTHS.map( ( w ) => (
+				{ WIDTH_PRESETS.map( ( w ) => (
 					<button
 						type="button"
-						key={ w.value }
-						className={ 'wpef-wbtn' + ( current === w.value ? ' is-active' : '' ) }
-						aria-pressed={ current === w.value }
+						key={ w.cols }
+						className={ 'wpef-wbtn' + ( current === w.cols ? ' is-active' : '' ) }
+						aria-pressed={ current === w.cols }
 						title={ w.label }
-						onClick={ () => patch( { width: w.value } ) }
+						onClick={ () => patch( { cols: w.cols } ) }
 					>
-						<span className="wpef-wbar"><span className="wpef-wfill" style={ { width: w.fill + '%' } } /></span>
+						<span className="wpef-wbar"><span className="wpef-wfill" style={ { width: ( w.cols / GRID_COLS ) * 100 + '%' } } /></span>
 						<span className="wpef-wlabel">{ w.label }</span>
 					</button>
 				) ) }
 			</div>
-			<p className="wpef-width-hint">{ __( '狭い幅にすると項目を横に並べられます。スマホでは自動で全幅になります。', 'wp-entry-form' ) }</p>
+			<p className="wpef-width-hint">{ __( '「プレビュー」タブでは右端をドラッグして細かく調整できます。スマホでは自動で全幅になります。', 'wp-entry-form' ) }</p>
 		</div>
 	);
 }
@@ -404,43 +420,80 @@ function FieldCard( { field, index, total, onChange, onRemove, onMove, dragHandl
 /* ------------------------------------------------------------------ */
 /* プレビュータブ（全体表示。並べ替えのみ可能）                        */
 /* ------------------------------------------------------------------ */
-function PreviewRow( { field, index, total, onMove, dragHandlers } ) {
+function PreviewItem( { field, index, total, cols, onMove, onResizeStart, dragHandlers } ) {
 	return (
 		<div
-			className={ `wpef-prev-row wpef-w-${ field.width || 'full' }` }
-			draggable
-			onDragStart={ ( e ) => dragHandlers.onDragStart( e, index ) }
+			className={ `wpef-prev-item wpef-col-${ cols }` }
 			onDragOver={ dragHandlers.onDragOver }
 			onDrop={ ( e ) => dragHandlers.onDrop( e, index ) }
 		>
-			<div className="wpef-prev-handle">
-				<span className="wpef-drag-handle" title={ __( 'ドラッグで並べ替え', 'wp-entry-form' ) }>⠿</span>
-				<Button size="small" variant="tertiary" disabled={ index === 0 } label={ __( '上へ', 'wp-entry-form' ) } onClick={ () => onMove( index, -1 ) }>↑</Button>
-				<Button size="small" variant="tertiary" disabled={ index === total - 1 } label={ __( '下へ', 'wp-entry-form' ) } onClick={ () => onMove( index, 1 ) }>↓</Button>
+			<div className="wpef-prev-toolbar">
+				<span
+					className="wpef-drag-handle"
+					draggable
+					onDragStart={ ( e ) => dragHandlers.onDragStart( e, index ) }
+					title={ __( 'ドラッグで移動', 'wp-entry-form' ) }
+				>⠿</span>
+				<Button size="small" variant="tertiary" disabled={ index === 0 } label={ __( '前へ', 'wp-entry-form' ) } onClick={ () => onMove( index, -1 ) }>←</Button>
+				<Button size="small" variant="tertiary" disabled={ index === total - 1 } label={ __( '次へ', 'wp-entry-form' ) } onClick={ () => onMove( index, 1 ) }>→</Button>
+				<span className="wpef-prev-cols">{ cols }/{ GRID_COLS }</span>
 			</div>
 			<div className="wpef-prev-field">
 				<FieldPreview field={ field } />
 			</div>
+			<span
+				className="wpef-resize-handle"
+				title={ __( 'ドラッグで幅を変更', 'wp-entry-form' ) }
+				onPointerDown={ ( e ) => onResizeStart( e, index, cols ) }
+			/>
 		</div>
 	);
 }
 
-function PreviewTab( { fields, settings, onMove, dragHandlers } ) {
+function PreviewTab( { fields, settings, onMove, onResize, dragHandlers, gridRef } ) {
 	const submitLabel = settings.messages.submit_button || __( '送信する', 'wp-entry-form' );
+
+	const onResizeStart = ( e, index, startCols ) => {
+		e.preventDefault();
+		e.stopPropagation();
+		const grid = gridRef.current;
+		if ( ! grid ) {
+			return;
+		}
+		const colW = grid.getBoundingClientRect().width / GRID_COLS;
+		const startX = e.clientX;
+		const move = ( ev ) => {
+			const delta = ev.clientX - startX;
+			let next = startCols + Math.round( delta / colW );
+			next = Math.max( 1, Math.min( GRID_COLS, next ) );
+			onResize( index, next );
+		};
+		const up = () => {
+			window.removeEventListener( 'pointermove', move );
+			window.removeEventListener( 'pointerup', up );
+			document.body.classList.remove( 'wpef-resizing' );
+		};
+		document.body.classList.add( 'wpef-resizing' );
+		window.addEventListener( 'pointermove', move );
+		window.addEventListener( 'pointerup', up );
+	};
+
 	return (
 		<div className="wpef-fullpreview">
-			<p className="wpef-fullpreview-note">{ __( 'このタブでは項目の並べ替えだけができます。内容の編集は「入力項目」タブで行ってください。', 'wp-entry-form' ) }</p>
+			<p className="wpef-fullpreview-note">{ __( '⠿ をドラッグで並べ替え、各項目の右端をドラッグで幅を変えられます。内容の編集は「入力項目」タブで行ってください。', 'wp-entry-form' ) }</p>
 			{ fields.length === 0 ? (
 				<Notice status="info" isDismissible={ false }>{ __( 'まだ入力項目がありません。', 'wp-entry-form' ) }</Notice>
 			) : (
-				<div className="wpef-fullpreview-form">
+				<div className="wpef-fullpreview-form" ref={ gridRef }>
 					{ fields.map( ( field, i ) => (
-						<PreviewRow
+						<PreviewItem
 							key={ i }
 							field={ field }
 							index={ i }
 							total={ fields.length }
+							cols={ fieldCols( field ) }
 							onMove={ onMove }
+							onResizeStart={ onResizeStart }
 							dragHandlers={ dragHandlers }
 						/>
 					) ) }
@@ -537,13 +590,17 @@ function SettingsSpam( { settings, set } ) {
 /* ルート                                                              */
 /* ------------------------------------------------------------------ */
 function Builder() {
-	const [ fields, setFields ] = useState( Array.isArray( data.fields ) ? data.fields : [] );
+	// 読み込み時に cols を正規化（旧来の名前付き width からの移行を含む）。
+	const initialFields = ( Array.isArray( data.fields ) ? data.fields : [] ).map( ( f ) => ( { ...f, cols: fieldCols( f ) } ) );
+	const [ fields, setFields ] = useState( initialFields );
 	const [ settings, setSettings ] = useState( defaultSettings( data.settings ) );
+	const gridRef = useRef( null );
 	let dragIndex = null;
 
 	const updateField = ( i, next ) => setFields( ( prev ) => prev.map( ( f, idx ) => ( idx === i ? next : f ) ) );
 	const removeField = ( i ) => setFields( ( prev ) => prev.filter( ( f, idx ) => idx !== i ) );
 	const addField = ( type ) => setFields( ( prev ) => [ ...prev, newField( type ) ] );
+	const resizeField = ( i, cols ) => setFields( ( prev ) => prev.map( ( f, idx ) => ( idx === i ? { ...f, cols: Math.max( 1, Math.min( GRID_COLS, cols ) ) } : f ) ) );
 	const moveField = ( i, dir ) => setFields( ( prev ) => {
 		const j = i + dir;
 		if ( j < 0 || j >= prev.length ) {
@@ -628,7 +685,7 @@ function Builder() {
 								</Card>
 							</Fragment>
 						) }
-						{ tab.name === 'preview' && <PreviewTab fields={ fields } settings={ settings } onMove={ moveField } dragHandlers={ dragHandlers } /> }
+						{ tab.name === 'preview' && <PreviewTab fields={ fields } settings={ settings } onMove={ moveField } onResize={ resizeField } dragHandlers={ dragHandlers } gridRef={ gridRef } /> }
 						{ tab.name === 'basic' && <SettingsBasic settings={ settings } set={ setSettingsPartial } /> }
 						{ tab.name === 'mail' && <SettingsMail settings={ settings } set={ setSettingsPartial } fieldKeys={ fieldKeys } /> }
 						{ tab.name === 'spam' && <SettingsSpam settings={ settings } set={ setSettingsPartial } /> }

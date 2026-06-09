@@ -275,57 +275,94 @@
 	align-items: start;
 }
 
-.wpef-prev-row {
+.wpef-prev-item {
+	position: relative;
 	grid-column: span 12;
-	display: flex;
-	align-items: flex-start;
-	gap: 12px;
-	padding: 12px;
-	border: 1px dashed transparent;
+	padding: 10px 14px 10px 10px;
+	border: 1px dashed #dcdcde;
 	border-radius: 6px;
-	cursor: grab;
+	background: #fff;
 }
 
-.wpef-fullpreview-form > .wpef-w-two_thirds {
-	grid-column: span 8;
+.wpef-prev-item:hover {
+	border-color: #2271b1;
 }
 
-.wpef-fullpreview-form > .wpef-w-half {
-	grid-column: span 6;
-}
+.wpef-fullpreview-form > .wpef-col-1 { grid-column: span 1; }
+.wpef-fullpreview-form > .wpef-col-2 { grid-column: span 2; }
+.wpef-fullpreview-form > .wpef-col-3 { grid-column: span 3; }
+.wpef-fullpreview-form > .wpef-col-4 { grid-column: span 4; }
+.wpef-fullpreview-form > .wpef-col-5 { grid-column: span 5; }
+.wpef-fullpreview-form > .wpef-col-6 { grid-column: span 6; }
+.wpef-fullpreview-form > .wpef-col-7 { grid-column: span 7; }
+.wpef-fullpreview-form > .wpef-col-8 { grid-column: span 8; }
+.wpef-fullpreview-form > .wpef-col-9 { grid-column: span 9; }
+.wpef-fullpreview-form > .wpef-col-10 { grid-column: span 10; }
+.wpef-fullpreview-form > .wpef-col-11 { grid-column: span 11; }
+.wpef-fullpreview-form > .wpef-col-12 { grid-column: span 12; }
 
-.wpef-fullpreview-form > .wpef-w-third {
-	grid-column: span 4;
-}
-
-.wpef-fullpreview-form > .wpef-w-quarter {
-	grid-column: span 3;
-}
-
-.wpef-prev-actions {
-	grid-column: span 12;
-}
-
-.wpef-prev-row:hover {
-	border-color: #c3c4c7;
-	background: #fafafa;
-}
-
-.wpef-prev-handle {
+.wpef-prev-toolbar {
 	display: flex;
-	flex-direction: column;
 	align-items: center;
-	gap: 2px;
-	padding-top: 2px;
+	gap: 4px;
+	margin-bottom: 8px;
+	padding-bottom: 6px;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.wpef-prev-toolbar .wpef-drag-handle {
+	cursor: grab;
+	margin-right: 2px;
+}
+
+.wpef-prev-cols {
+	margin-left: auto;
+	font-size: 11px;
+	color: #787c82;
 }
 
 .wpef-prev-field {
-	flex: 1;
 	min-width: 0;
 }
 
+/* 右端のリサイズハンドル。 */
+.wpef-resize-handle {
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 10px;
+	height: 100%;
+	cursor: ew-resize;
+	border-radius: 0 6px 6px 0;
+	touch-action: none;
+}
+
+.wpef-resize-handle::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	right: 3px;
+	width: 3px;
+	height: 28px;
+	margin-top: -14px;
+	background: #c3c4c7;
+	border-radius: 2px;
+}
+
+.wpef-prev-item:hover .wpef-resize-handle::before {
+	background: #2271b1;
+}
+
+/* リサイズ中は全体を ew-resize に。 */
+body.wpef-resizing,
+body.wpef-resizing * {
+	cursor: ew-resize !important;
+	user-select: none;
+}
+
 .wpef-prev-actions {
-	margin-top: 20px;
+	grid-column: span 12;
+	margin-top: 12px;
 }
 
 .wpef-prev-submit {
