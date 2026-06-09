@@ -55,6 +55,7 @@ $wpef_includes = array(
 	'includes/class-wpef-renderer.php',
 	'includes/class-wpef-shortcode.php',
 	'includes/class-wpef-submit-handler.php',
+	'includes/class-wpef-mailer.php',
 	'includes/class-wpef-rest.php',
 	'admin/class-wpef-admin.php',
 	'admin/class-wpef-form-builder.php',
@@ -91,6 +92,11 @@ function wpef_init() {
 	// 送信フロー（admin-post）。
 	if ( class_exists( 'WPEF_Submit_Handler' ) ) {
 		WPEF_Submit_Handler::init();
+	}
+
+	// メール（管理者通知・自動返信）。
+	if ( class_exists( 'WPEF_Mailer' ) ) {
+		WPEF_Mailer::init();
 	}
 
 	// REST（ブロックエディタ用フォーム一覧）。
