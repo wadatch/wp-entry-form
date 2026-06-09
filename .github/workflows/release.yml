@@ -54,6 +54,12 @@ jobs:
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "採番: ${TAG}"
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
       - name: Build plugin zip
         env:
           WPEF_BUILD_VERSION: ${{ steps.ver.outputs.version }}

@@ -21,6 +21,17 @@ npm install
 npm run env:start
 ```
 
+### フロントエンドアセットのビルド
+
+フォームビルダー UI とブロックのエディタスクリプトは `@wordpress/scripts`（React）でビルドします。**ソースを編集したら（または初回起動前に）ビルドが必要**です。
+
+```bash
+npm run build:assets   # 1回ビルド → build/assets/ に出力
+npm run start          # ウォッチビルド（編集のたびに自動再ビルド）
+```
+
+`.wp-env.json` は `SCRIPT_DEBUG: true` のため、ローカルでは非 minified のビルド成果物が読み込まれます。`build/` は Git 管理外で、配布 zip にはビルド時（`bin/build.sh` / リリース）に自動で同梱されます。
+
 起動後のアクセス先:
 
 | 用途 | URL | 認証 |
