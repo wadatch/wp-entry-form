@@ -12,6 +12,7 @@
  */
 import { createRoot, useState, useRef, Fragment } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+import { FaGear } from 'react-icons/fa6';
 import {
 	Button,
 	TextControl,
@@ -380,7 +381,7 @@ function EditableField( { field, index, total, onChange, onRemove, onMove, onRes
 				<span className="wpef-ef-spacer" />
 				<Button size="small" variant="tertiary" disabled={ index === 0 } label={ __( '前へ', 'wp-entry-form' ) } onClick={ () => onMove( index, -1 ) }>←</Button>
 				<Button size="small" variant="tertiary" disabled={ index === total - 1 } label={ __( '次へ', 'wp-entry-form' ) } onClick={ () => onMove( index, 1 ) }>→</Button>
-				<Button size="small" variant={ open ? 'primary' : 'tertiary' } aria-expanded={ open } label={ __( '詳細設定', 'wp-entry-form' ) } onClick={ () => setOpen( ! open ) }>⚙</Button>
+				<Button size="small" variant={ open ? 'primary' : 'tertiary' } aria-expanded={ open } label={ __( '詳細設定', 'wp-entry-form' ) } onClick={ () => setOpen( ! open ) }><FaGear aria-hidden="true" /></Button>
 				<Button size="small" isDestructive variant="tertiary" label={ __( '削除', 'wp-entry-form' ) } onClick={ () => onRemove( index ) }>✕</Button>
 			</div>
 
