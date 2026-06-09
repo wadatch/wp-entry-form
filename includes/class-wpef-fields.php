@@ -246,6 +246,51 @@ class WPEF_Fields {
 	}
 
 	/**
+	 * 値を人が読めるプレーンテキストへ整形する（選択肢はラベル、配列は結合、同意は文言）。
+	 *
+	 * CSV・メール・確認画面など値の表示に共通で使う。
+	 *
+	 * @param array $field フィールド定義。
+	 * @param mixed $value 値。
+	 * @return string
+	 */
+	public static function value_to_text( $field, $value ) {
+		$type = isset( $field['type'] ) ? $field['type'] : 'text';
+		if ( 'consent' === $type ) {
+			return ! empty( $value ) ? __( '同意する', 'wp-entry-form' ) : __( '同意しない', 'wp-entry-form' );
+		}
+		if ( is_array( $value ) ) {
+			$labels = array();
+			foreach ( $value as $v ) {
+				$labels[] = self::value_label( $field, (string) $v );
+			}
+			return implode( '、', $labels );
+		}
+		if ( self::has_options( $type ) ) {
+			return self::value_label( $field, (string) $value );
+		}
+		return (string) $value;
+	}
+
+	/**
+	 * 選択肢 value に対応するラベルを返す（無ければ value 自身）。
+	 *
+	 * @param array  $field フィールド定義。
+	 * @param string $value 値。
+	 * @return string
+	 */
+	public static function value_label( $field, $value ) {
+		if ( ! empty( $field['options'] ) && is_array( $field['options'] ) ) {
+			foreach ( $field['options'] as $opt ) {
+				if ( is_array( $opt ) && isset( $opt['value'] ) && (string) $opt['value'] === $value ) {
+					return isset( $opt['label'] ) && '' !== $opt['label'] ? (string) $opt['label'] : $value;
+				}
+			}
+		}
+		return $value;
+	}
+
+	/**
 	 * 選択肢の value 一覧を返す。
 	 *
 	 * @param array $field フィールド定義。

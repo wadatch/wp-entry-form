@@ -154,6 +154,117 @@ class WPEF_DB {
 	 * ------------------------------------------------------------------- */
 
 	/**
+	 * 条件に合う送信一覧を取得する。
+	 *
+	 * @param array $args form_id / status / search / orderby / order / number / offset。
+	 * @return array data デコード済みの行配列。
+	 */
+	public static function get_submissions( $args = array() ) {
+		global $wpdb;
+		$table = WPEF_Install::submissions_table();
+
+		$args = wp_parse_args(
+			$args,
+			array(
+				'form_id' => 0,
+				'status'  => '',
+				'search'  => '',
+				'orderby' => 'created_at',
+				'order'   => 'DESC',
+				'number'  => 20,
+				'offset'  => 0,
+			)
+		);
+
+		list( $where, $params ) = self::submissions_where( $args );
+
+		$allowed_orderby = array( 'id', 'created_at', 'status', 'form_id' );
+		$orderby         = in_array( $args['orderby'], $allowed_orderby, true ) ? $args['orderby'] : 'created_at';
+		$order           = 'ASC' === strtoupper( $args['order'] ) ? 'ASC' : 'DESC';
+
+		$number = max( 1, (int) $args['number'] );
+		$offset = max( 0, (int) $args['offset'] );
+
+		$sql      = "SELECT * FROM {$table} {$where} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d";
+		$params[] = $number;
+		$params[] = $offset;
+
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL
+		return array_map( array( __CLASS__, 'decode_submission' ), $rows ? $rows : array() );
+	}
+
+	/**
+	 * 条件に合う送信件数を返す。
+	 *
+	 * @param array $args form_id / status / search。
+	 * @return int
+	 */
+	public static function count_submissions( $args = array() ) {
+		global $wpdb;
+		$table = WPEF_Install::submissions_table();
+		$args  = wp_parse_args( $args, array( 'form_id' => 0, 'status' => '', 'search' => '' ) );
+
+		list( $where, $params ) = self::submissions_where( $args );
+
+		$sql = "SELECT COUNT(*) FROM {$table} {$where}";
+		if ( $params ) {
+			return (int) $wpdb->get_var( $wpdb->prepare( $sql, $params ) ); // phpcs:ignore WordPress.DB.PreparedSQL
+		}
+		return (int) $wpdb->get_var( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL
+	}
+
+	/**
+	 * フォームのステータス別件数を返す（all は trash 除外）。
+	 *
+	 * @param int $form_id フォーム ID（0 で全フォーム）。
+	 * @return array status => 件数（all/unread/read/spam/trash）。
+	 */
+	public static function count_by_status( $form_id = 0 ) {
+		$out = array();
+		foreach ( array( 'all', 'unread', 'read', 'spam', 'trash' ) as $status ) {
+			$out[ $status ] = self::count_submissions(
+				array(
+					'form_id' => $form_id,
+					'status'  => 'all' === $status ? '' : $status,
+				)
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * 送信一覧用の WHERE 句とプレースホルダ値を構築する。
+	 *
+	 * status 未指定（''）は trash を除外した「すべて」。
+	 *
+	 * @param array $args form_id / status / search。
+	 * @return array array( $where_sql, $params )。
+	 */
+	private static function submissions_where( $args ) {
+		$clauses = array();
+		$params  = array();
+
+		if ( ! empty( $args['form_id'] ) ) {
+			$clauses[] = 'form_id = %d';
+			$params[]  = absint( $args['form_id'] );
+		}
+		if ( '' !== $args['status'] ) {
+			$clauses[] = 'status = %s';
+			$params[]  = (string) $args['status'];
+		} else {
+			$clauses[] = "status <> 'trash'";
+		}
+		if ( '' !== $args['search'] ) {
+			global $wpdb;
+			$clauses[] = 'data LIKE %s';
+			$params[]  = '%' . $wpdb->esc_like( (string) $args['search'] ) . '%';
+		}
+
+		$where = $clauses ? 'WHERE ' . implode( ' AND ', $clauses ) : '';
+		return array( $where, $params );
+	}
+
+	/**
 	 * 送信を1件取得する。
 	 *
 	 * @param int $id 送信 ID。
@@ -181,7 +292,8 @@ class WPEF_DB {
 			WPEF_Install::submissions_table(),
 			array(
 				'form_id'    => isset( $data['form_id'] ) ? absint( $data['form_id'] ) : 0,
-				'data'       => wp_json_encode( isset( $data['data'] ) ? $data['data'] : array() ),
+				// 日本語をエスケープせず保存し、キーワード検索（LIKE）で一致できるようにする。
+				'data'       => wp_json_encode( isset( $data['data'] ) ? $data['data'] : array(), JSON_UNESCAPED_UNICODE ),
 				'status'     => isset( $data['status'] ) ? (string) $data['status'] : 'unread',
 				'ip_address' => isset( $data['ip_address'] ) ? (string) $data['ip_address'] : '',
 				'user_agent' => isset( $data['user_agent'] ) ? (string) $data['user_agent'] : '',

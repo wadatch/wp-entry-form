@@ -57,9 +57,16 @@ $wpef_includes = array(
 	'includes/class-wpef-submit-handler.php',
 	'includes/class-wpef-mailer.php',
 	'includes/class-wpef-rest.php',
-	'admin/class-wpef-admin.php',
-	'admin/class-wpef-form-builder.php',
 );
+
+// 管理画面でのみ読み込むファイル（WP_List_Table 依存などを front に持ち込まない）。
+if ( is_admin() ) {
+	$wpef_includes[] = 'admin/class-wpef-admin.php';
+	$wpef_includes[] = 'admin/class-wpef-form-builder.php';
+	$wpef_includes[] = 'admin/class-wpef-submissions-table.php';
+	$wpef_includes[] = 'admin/class-wpef-submissions.php';
+}
+
 foreach ( $wpef_includes as $wpef_include ) {
 	$wpef_include_path = WPEF_PATH . $wpef_include;
 	if ( is_readable( $wpef_include_path ) ) {
@@ -105,8 +112,13 @@ function wpef_init() {
 	}
 
 	// 管理画面。
-	if ( is_admin() && class_exists( 'WPEF_Admin' ) ) {
-		WPEF_Admin::init();
+	if ( is_admin() ) {
+		if ( class_exists( 'WPEF_Admin' ) ) {
+			WPEF_Admin::init();
+		}
+		if ( class_exists( 'WPEF_Submissions' ) ) {
+			WPEF_Submissions::init();
+		}
 	}
 }
 add_action( 'plugins_loaded', 'wpef_init' );
