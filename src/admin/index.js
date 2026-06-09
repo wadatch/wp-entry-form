@@ -3,6 +3,9 @@
  *
  * window.wpefBuilder（PHP の wp_localize_script）から初期のフィールド・設定・型一覧を読み、
  * フィールドの追加/編集/削除/並べ替えと設定タブ（基本/メール/スパム）を提供する。
+ * 各フィールドは「実際の表示に近いプレビュー」として描画し、項目名や説明はその場で
+ * インライン編集する（専門用語をできるだけ避ける）。スマホ幅でも編集できるよう
+ * 入力は縦積み・タップしやすいサイズにする（CSS: admin/css/wpef-admin.css）。
  * 状態は隠し input（name="wpef_fields" / "wpef_settings"）に JSON で書き出し、
  * 周囲の PHP フォームの標準 POST で保存される（ビルド: @wordpress/scripts）。
  */
@@ -26,6 +29,9 @@ import {
 
 const data = window.wpefBuilder || {};
 const FIELD_TYPES = data.fieldTypes || [];
+
+// プレースホルダ（入力欄のヒント）を持てる型。
+const HINT_TYPES = [ 'text', 'textarea', 'email', 'tel', 'url', 'number', 'date' ];
 
 function typeMeta( type ) {
 	return FIELD_TYPES.find( ( t ) => t.type === type ) || { input: true, hasOptions: false, multiple: false, display: false };
@@ -74,7 +80,7 @@ function defaultSettings( raw ) {
 
 function newField( type ) {
 	const meta = typeMeta( type );
-	const f = { type, label: typeMeta( type ).label || type };
+	const f = { type, label: '' };
 	if ( meta.input ) {
 		f.key = '';
 		f.required = false;
@@ -82,7 +88,10 @@ function newField( type ) {
 		f.help = '';
 		f.default = '';
 		if ( meta.hasOptions ) {
-			f.options = [ { label: __( '選択肢1', 'wp-entry-form' ), value: 'option_1' } ];
+			f.options = [
+				{ label: __( '選択肢1', 'wp-entry-form' ), value: __( '選択肢1', 'wp-entry-form' ) },
+				{ label: __( '選択肢2', 'wp-entry-form' ), value: __( '選択肢2', 'wp-entry-form' ) },
+			];
 		}
 		if ( type === 'file' ) {
 			f.file = { max_size_mb: 5, accept: [ 'pdf', 'jpg', 'jpeg', 'png' ] };
@@ -93,156 +102,241 @@ function newField( type ) {
 }
 
 /* ------------------------------------------------------------------ */
-/* オプション編集                                                      */
+/* 選択肢の編集（選択肢のテキストのみ。保存値はテキストと同一にする）  */
 /* ------------------------------------------------------------------ */
 function OptionsEditor( { options, onChange } ) {
 	const list = options || [];
-	const update = ( i, patch ) => {
-		const next = list.map( ( o, idx ) => ( idx === i ? { ...o, ...patch } : o ) );
-		onChange( next );
-	};
+	const update = ( i, text ) => onChange( list.map( ( o, idx ) => ( idx === i ? { label: text, value: text } : o ) ) );
 	return (
 		<div className="wpef-options-editor">
-			<p><strong>{ __( '選択肢', 'wp-entry-form' ) }</strong></p>
+			<p className="wpef-ctrl-label">{ __( '選択肢', 'wp-entry-form' ) }</p>
 			{ list.map( ( opt, i ) => (
-				<Flex key={ i } align="flex-end" gap={ 2 } style={ { marginBottom: 6 } }>
-					<FlexBlock>
-						<TextControl
-							label={ __( 'ラベル', 'wp-entry-form' ) }
-							value={ opt.label || '' }
-							onChange={ ( v ) => update( i, { label: v } ) }
-							__nextHasNoMarginBottom
-						/>
-					</FlexBlock>
-					<FlexBlock>
-						<TextControl
-							label={ __( '値', 'wp-entry-form' ) }
-							value={ opt.value || '' }
-							onChange={ ( v ) => update( i, { value: v } ) }
-							__nextHasNoMarginBottom
-						/>
-					</FlexBlock>
-					<FlexItem>
-						<Button isDestructive variant="secondary" onClick={ () => onChange( list.filter( ( o, idx ) => idx !== i ) ) }>
-							{ __( '削除', 'wp-entry-form' ) }
-						</Button>
-					</FlexItem>
-				</Flex>
+				<div key={ i } className="wpef-opt-row">
+					<input
+						type="text"
+						className="wpef-opt-input"
+						value={ opt.label || '' }
+						placeholder={ __( '選択肢のテキスト', 'wp-entry-form' ) }
+						onChange={ ( e ) => update( i, e.target.value ) }
+					/>
+					<Button isDestructive variant="tertiary" label={ __( '削除', 'wp-entry-form' ) } onClick={ () => onChange( list.filter( ( o, idx ) => idx !== i ) ) }>✕</Button>
+				</div>
 			) ) }
-			<Button variant="secondary" onClick={ () => onChange( [ ...list, { label: '', value: '' } ] ) }>
-				{ __( '選択肢を追加', 'wp-entry-form' ) }
+			<Button variant="secondary" size="small" onClick={ () => onChange( [ ...list, { label: '', value: '' } ] ) }>
+				{ __( '＋ 選択肢を追加', 'wp-entry-form' ) }
 			</Button>
 		</div>
 	);
 }
 
 /* ------------------------------------------------------------------ */
-/* フィールド1件の編集                                                 */
+/* フィールドの「実際の表示」プレビュー（編集不可の見本）             */
+/* ------------------------------------------------------------------ */
+function PreviewControl( { field } ) {
+	const ph = field.placeholder || '';
+	const opts = field.options || [];
+	switch ( field.type ) {
+		case 'textarea':
+			return <textarea className="wpef-pv-input" rows={ 3 } placeholder={ ph } disabled />;
+		case 'select':
+			return (
+				<select className="wpef-pv-input" disabled>
+					<option>{ __( '選択してください', 'wp-entry-form' ) }</option>
+					{ opts.map( ( o, i ) => <option key={ i }>{ o.label || __( '選択肢', 'wp-entry-form' ) }</option> ) }
+				</select>
+			);
+		case 'radio':
+			return (
+				<div className="wpef-pv-options">
+					{ opts.map( ( o, i ) => (
+						<label key={ i } className="wpef-pv-option"><input type="radio" disabled /> { o.label || __( '選択肢', 'wp-entry-form' ) }</label>
+					) ) }
+				</div>
+			);
+		case 'checkbox':
+			return (
+				<div className="wpef-pv-options">
+					{ opts.map( ( o, i ) => (
+						<label key={ i } className="wpef-pv-option"><input type="checkbox" disabled /> { o.label || __( '選択肢', 'wp-entry-form' ) }</label>
+					) ) }
+				</div>
+			);
+		case 'file':
+			return <input type="file" className="wpef-pv-input" disabled />;
+		case 'number':
+			return <input type="number" className="wpef-pv-input" placeholder={ ph } disabled />;
+		default: {
+			const t = [ 'email', 'tel', 'url', 'date' ].includes( field.type ) ? field.type : 'text';
+			return <input type={ t } className="wpef-pv-input" placeholder={ ph } disabled />;
+		}
+	}
+}
+
+/* ------------------------------------------------------------------ */
+/* フィールド1件の編集（プレビュー＋平易な操作）                       */
 /* ------------------------------------------------------------------ */
 function FieldCard( { field, index, total, onChange, onRemove, onMove, dragHandlers } ) {
 	const meta = typeMeta( field.type );
 	const patch = ( p ) => onChange( index, { ...field, ...p } );
 	const patchValidation = ( p ) => onChange( index, { ...field, validation: { ...( field.validation || {} ), ...p } } );
 
-	return (
-		<Card
-			className="wpef-field-card"
-			draggable
-			onDragStart={ ( e ) => dragHandlers.onDragStart( e, index ) }
-			onDragOver={ ( e ) => dragHandlers.onDragOver( e, index ) }
-			onDrop={ ( e ) => dragHandlers.onDrop( e, index ) }
-			style={ { marginBottom: 12 } }
-		>
-			<CardHeader>
-				<Flex>
-					<FlexBlock>
-						<span className="wpef-drag-handle" title={ __( 'ドラッグで並べ替え', 'wp-entry-form' ) } style={ { cursor: 'grab', marginRight: 8 } }>⠿</span>
-						<strong>{ meta.label || field.type }</strong>
-						{ field.key ? <code style={ { marginLeft: 8 } }>{ field.key }</code> : null }
-					</FlexBlock>
-					<FlexItem>
-						<Button size="small" variant="tertiary" disabled={ index === 0 } onClick={ () => onMove( index, -1 ) }>↑</Button>
-						<Button size="small" variant="tertiary" disabled={ index === total - 1 } onClick={ () => onMove( index, 1 ) }>↓</Button>
-						<Button size="small" isDestructive variant="tertiary" onClick={ () => onRemove( index ) }>{ __( '削除', 'wp-entry-form' ) }</Button>
-					</FlexItem>
-				</Flex>
-			</CardHeader>
-			<CardBody>
-				<TextControl
-					label={ meta.display ? __( 'テキスト', 'wp-entry-form' ) : __( 'ラベル', 'wp-entry-form' ) }
-					value={ field.label || '' }
-					onChange={ ( v ) => patch( { label: v } ) }
-					__nextHasNoMarginBottom
-				/>
+	const moveButtons = (
+		<FlexItem>
+			<Button size="small" variant="tertiary" disabled={ index === 0 } label={ __( '上へ', 'wp-entry-form' ) } onClick={ () => onMove( index, -1 ) }>↑</Button>
+			<Button size="small" variant="tertiary" disabled={ index === total - 1 } label={ __( '下へ', 'wp-entry-form' ) } onClick={ () => onMove( index, 1 ) }>↓</Button>
+			<Button size="small" isDestructive variant="tertiary" onClick={ () => onRemove( index ) }>{ __( '削除', 'wp-entry-form' ) }</Button>
+		</FlexItem>
+	);
 
-				{ meta.input && (
-					<Fragment>
-						<TextControl
-							label={ __( 'フィールドキー（英数_、空なら自動）', 'wp-entry-form' ) }
-							value={ field.key || '' }
-							onChange={ ( v ) => patch( { key: v } ) }
-							help={ __( 'メール差し込みや CSV の列名に使われます。', 'wp-entry-form' ) }
-							__nextHasNoMarginBottom
-						/>
-						<ToggleControl
-							label={ __( '必須', 'wp-entry-form' ) }
-							checked={ !! field.required }
-							onChange={ ( v ) => patch( { required: v } ) }
-							__nextHasNoMarginBottom
-						/>
+	const header = (
+		<CardHeader className="wpef-field-head">
+			<Flex>
+				<FlexBlock>
+					<span className="wpef-drag-handle" title={ __( 'ドラッグで並べ替え', 'wp-entry-form' ) }>⠿</span>
+					<strong>{ meta.label || field.type }</strong>
+				</FlexBlock>
+				{ moveButtons }
+			</Flex>
+		</CardHeader>
+	);
 
-						{ meta.hasOptions && (
-							<OptionsEditor options={ field.options || [] } onChange={ ( opts ) => patch( { options: opts } ) } />
-						) }
+	// 見出し・説明文（表示専用）: テキストをそのままインライン編集。
+	if ( meta.display ) {
+		return (
+			<Card className="wpef-field-card" draggable onDragStart={ ( e ) => dragHandlers.onDragStart( e, index ) } onDragOver={ dragHandlers.onDragOver } onDrop={ ( e ) => dragHandlers.onDrop( e, index ) }>
+				{ header }
+				<CardBody>
+					<input
+						type="text"
+						className={ field.type === 'heading' ? 'wpef-inline-heading' : 'wpef-inline-para' }
+						value={ field.label || '' }
+						placeholder={ field.type === 'heading' ? __( '見出しを入力', 'wp-entry-form' ) : __( '説明文を入力', 'wp-entry-form' ) }
+						onChange={ ( e ) => patch( { label: e.target.value } ) }
+					/>
+				</CardBody>
+			</Card>
+		);
+	}
 
-						{ field.type !== 'consent' && ! meta.hasOptions && field.type !== 'file' && (
-							<TextControl
-								label={ __( 'プレースホルダ', 'wp-entry-form' ) }
-								value={ field.placeholder || '' }
-								onChange={ ( v ) => patch( { placeholder: v } ) }
-								__nextHasNoMarginBottom
+	const advanced = (
+		<details className="wpef-advanced">
+			<summary>{ __( '詳細設定', 'wp-entry-form' ) }</summary>
+			<TextControl
+				label={ __( '保存名（英数字・空欄なら自動）', 'wp-entry-form' ) }
+				value={ field.key || '' }
+				onChange={ ( v ) => patch( { key: v } ) }
+				help={ __( 'メールの差し込みや CSV の列名に使われます。通常は空欄のままで構いません。', 'wp-entry-form' ) }
+				__nextHasNoMarginBottom
+			/>
+		</details>
+	);
+
+	// 同意チェック: チェックボックス＋同意文をインライン編集。
+	if ( field.type === 'consent' ) {
+		return (
+			<Card className="wpef-field-card" draggable onDragStart={ ( e ) => dragHandlers.onDragStart( e, index ) } onDragOver={ dragHandlers.onDragOver } onDrop={ ( e ) => dragHandlers.onDrop( e, index ) }>
+				{ header }
+				<CardBody>
+					<div className="wpef-fp">
+						<label className="wpef-pv-consent">
+							<input type="checkbox" disabled />
+							<input
+								type="text"
+								className="wpef-inline-label"
+								value={ field.label || '' }
+								placeholder={ __( '同意の文（例：プライバシーポリシーに同意します）', 'wp-entry-form' ) }
+								onChange={ ( e ) => patch( { label: e.target.value } ) }
 							/>
-						) }
+							{ field.required && <span className="wpef-req" title={ __( '必須', 'wp-entry-form' ) }>*</span> }
+						</label>
+					</div>
+					<div className="wpef-fp-controls">
+						<ToggleControl label={ __( '同意を必須にする', 'wp-entry-form' ) } checked={ !! field.required } onChange={ ( v ) => patch( { required: v } ) } __nextHasNoMarginBottom />
+						{ advanced }
+					</div>
+				</CardBody>
+			</Card>
+		);
+	}
 
-						{ field.type === 'number' && (
-							<Flex gap={ 2 }>
-								<FlexBlock>
-									<TextControl type="number" label={ __( '最小値', 'wp-entry-form' ) } value={ field.validation?.min ?? '' } onChange={ ( v ) => patchValidation( { min: v } ) } __nextHasNoMarginBottom />
-								</FlexBlock>
-								<FlexBlock>
-									<TextControl type="number" label={ __( '最大値', 'wp-entry-form' ) } value={ field.validation?.max ?? '' } onChange={ ( v ) => patchValidation( { max: v } ) } __nextHasNoMarginBottom />
-								</FlexBlock>
-							</Flex>
-						) }
+	// 通常の入力フィールド。
+	return (
+		<Card className="wpef-field-card" draggable onDragStart={ ( e ) => dragHandlers.onDragStart( e, index ) } onDragOver={ dragHandlers.onDragOver } onDrop={ ( e ) => dragHandlers.onDrop( e, index ) }>
+			{ header }
+			<CardBody>
+				{ /* 実際の表示に近いプレビュー（項目名・説明はインライン編集） */ }
+				<div className="wpef-fp">
+					<div className="wpef-fp-labelrow">
+						<input
+							type="text"
+							className="wpef-inline-label"
+							value={ field.label || '' }
+							placeholder={ __( '項目名を入力（例：お名前）', 'wp-entry-form' ) }
+							onChange={ ( e ) => patch( { label: e.target.value } ) }
+						/>
+						{ field.required && <span className="wpef-req" title={ __( '必須', 'wp-entry-form' ) }>*</span> }
+					</div>
+					<PreviewControl field={ field } />
+					<input
+						type="text"
+						className="wpef-inline-help"
+						value={ field.help || '' }
+						placeholder={ __( '補足説明（任意・項目の下に表示）', 'wp-entry-form' ) }
+						onChange={ ( e ) => patch( { help: e.target.value } ) }
+					/>
+				</div>
 
-						{ ( field.type === 'text' || field.type === 'textarea' ) && (
-							<TextControl type="number" label={ __( '最大文字数', 'wp-entry-form' ) } value={ field.validation?.max_length ?? '' } onChange={ ( v ) => patchValidation( { max_length: v } ) } __nextHasNoMarginBottom />
-						) }
+				{ /* 平易な操作 */ }
+				<div className="wpef-fp-controls">
+					<ToggleControl label={ __( '入力を必須にする', 'wp-entry-form' ) } checked={ !! field.required } onChange={ ( v ) => patch( { required: v } ) } __nextHasNoMarginBottom />
 
-						{ field.type === 'file' && (
-							<Flex gap={ 2 }>
-								<FlexBlock>
-									<TextControl
-										label={ __( '許可拡張子（カンマ区切り）', 'wp-entry-form' ) }
-										value={ ( field.file?.accept || [] ).join( ', ' ) }
-										onChange={ ( v ) => patch( { file: { ...( field.file || {} ), accept: v.split( ',' ).map( ( s ) => s.trim().replace( /^\./, '' ) ).filter( Boolean ) } } ) }
-										__nextHasNoMarginBottom
-									/>
-								</FlexBlock>
-								<FlexItem>
-									<TextControl type="number" label={ __( '最大MB', 'wp-entry-form' ) } value={ field.file?.max_size_mb ?? 5 } onChange={ ( v ) => patch( { file: { ...( field.file || {} ), max_size_mb: v } } ) } __nextHasNoMarginBottom />
-								</FlexItem>
-							</Flex>
-						) }
+					{ meta.hasOptions && (
+						<OptionsEditor options={ field.options || [] } onChange={ ( opts ) => patch( { options: opts } ) } />
+					) }
 
+					{ HINT_TYPES.includes( field.type ) && (
 						<TextControl
-							label={ __( '補足説明', 'wp-entry-form' ) }
-							value={ field.help || '' }
-							onChange={ ( v ) => patch( { help: v } ) }
+							label={ __( '入力欄のヒント（うすく表示される入力例）', 'wp-entry-form' ) }
+							value={ field.placeholder || '' }
+							onChange={ ( v ) => patch( { placeholder: v } ) }
 							__nextHasNoMarginBottom
 						/>
-					</Fragment>
-				) }
+					) }
+
+					{ field.type === 'number' && (
+						<Flex className="wpef-row" gap={ 2 }>
+							<FlexBlock>
+								<TextControl type="number" label={ __( '最小値', 'wp-entry-form' ) } value={ field.validation?.min ?? '' } onChange={ ( v ) => patchValidation( { min: v } ) } __nextHasNoMarginBottom />
+							</FlexBlock>
+							<FlexBlock>
+								<TextControl type="number" label={ __( '最大値', 'wp-entry-form' ) } value={ field.validation?.max ?? '' } onChange={ ( v ) => patchValidation( { max: v } ) } __nextHasNoMarginBottom />
+							</FlexBlock>
+						</Flex>
+					) }
+
+					{ ( field.type === 'text' || field.type === 'textarea' ) && (
+						<TextControl type="number" label={ __( '最大文字数（任意）', 'wp-entry-form' ) } value={ field.validation?.max_length ?? '' } onChange={ ( v ) => patchValidation( { max_length: v } ) } __nextHasNoMarginBottom />
+					) }
+
+					{ field.type === 'file' && (
+						<Flex className="wpef-row" gap={ 2 }>
+							<FlexBlock>
+								<TextControl
+									label={ __( '受け付けるファイル形式（カンマ区切り）', 'wp-entry-form' ) }
+									value={ ( field.file?.accept || [] ).join( ', ' ) }
+									onChange={ ( v ) => patch( { file: { ...( field.file || {} ), accept: v.split( ',' ).map( ( s ) => s.trim().replace( /^\./, '' ) ).filter( Boolean ) } } ) }
+									help={ __( '例：pdf, jpg, png', 'wp-entry-form' ) }
+									__nextHasNoMarginBottom
+								/>
+							</FlexBlock>
+							<FlexItem>
+								<TextControl type="number" label={ __( '最大サイズ(MB)', 'wp-entry-form' ) } value={ field.file?.max_size_mb ?? 5 } onChange={ ( v ) => patch( { file: { ...( field.file || {} ), max_size_mb: v } } ) } __nextHasNoMarginBottom />
+							</FlexItem>
+						</Flex>
+					) }
+
+					{ advanced }
+				</div>
 			</CardBody>
 		</Card>
 	);
@@ -256,12 +350,16 @@ function SettingsBasic( { settings, set } ) {
 	const setMsg = ( p ) => set( { messages: { ...m, ...p } } );
 	return (
 		<Fragment>
-			<ToggleControl label={ __( '確認画面を表示する', 'wp-entry-form' ) } checked={ settings.confirmation_screen } onChange={ ( v ) => set( { confirmation_screen: v } ) } __nextHasNoMarginBottom />
+			<ToggleControl label={ __( '送信前に確認画面を表示する', 'wp-entry-form' ) } checked={ settings.confirmation_screen } onChange={ ( v ) => set( { confirmation_screen: v } ) } __nextHasNoMarginBottom />
 			<TextControl label={ __( '送信ボタンの文言', 'wp-entry-form' ) } value={ m.submit_button } onChange={ ( v ) => setMsg( { submit_button: v } ) } __nextHasNoMarginBottom />
-			<TextControl label={ __( '確認ボタンの文言', 'wp-entry-form' ) } value={ m.confirm_button } onChange={ ( v ) => setMsg( { confirm_button: v } ) } __nextHasNoMarginBottom />
-			<TextControl label={ __( '戻るボタンの文言', 'wp-entry-form' ) } value={ m.back_button } onChange={ ( v ) => setMsg( { back_button: v } ) } __nextHasNoMarginBottom />
-			<TextareaControl label={ __( '完了メッセージ', 'wp-entry-form' ) } value={ m.success } onChange={ ( v ) => setMsg( { success: v } ) } __nextHasNoMarginBottom />
-			<TextControl label={ __( '完了後リダイレクト URL（任意）', 'wp-entry-form' ) } value={ settings.redirect_url } onChange={ ( v ) => set( { redirect_url: v } ) } __nextHasNoMarginBottom />
+			{ settings.confirmation_screen && (
+				<Fragment>
+					<TextControl label={ __( '確認ボタンの文言', 'wp-entry-form' ) } value={ m.confirm_button } onChange={ ( v ) => setMsg( { confirm_button: v } ) } __nextHasNoMarginBottom />
+					<TextControl label={ __( '戻るボタンの文言', 'wp-entry-form' ) } value={ m.back_button } onChange={ ( v ) => setMsg( { back_button: v } ) } __nextHasNoMarginBottom />
+				</Fragment>
+			) }
+			<TextareaControl label={ __( '送信完了後に表示するメッセージ', 'wp-entry-form' ) } value={ m.success } onChange={ ( v ) => setMsg( { success: v } ) } __nextHasNoMarginBottom />
+			<TextControl label={ __( '送信完了後に移動する URL（任意・空なら上のメッセージを表示）', 'wp-entry-form' ) } value={ settings.redirect_url } onChange={ ( v ) => set( { redirect_url: v } ) } __nextHasNoMarginBottom />
 		</Fragment>
 	);
 }
@@ -273,25 +371,34 @@ function SettingsMail( { settings, set, fieldKeys } ) {
 	const setR = ( p ) => set( { autoresponder: { ...r, ...p } } );
 	return (
 		<Fragment>
-			<h3>{ __( '管理者通知メール', 'wp-entry-form' ) }</h3>
-			<ToggleControl label={ __( '有効にする', 'wp-entry-form' ) } checked={ a.enabled } onChange={ ( v ) => setA( { enabled: v } ) } __nextHasNoMarginBottom />
-			<TextControl label={ __( '宛先（カンマ区切り、空なら管理者メール）', 'wp-entry-form' ) } value={ a.to } onChange={ ( v ) => setA( { to: v } ) } __nextHasNoMarginBottom />
-			<TextControl label={ __( '件名', 'wp-entry-form' ) } value={ a.subject } onChange={ ( v ) => setA( { subject: v } ) } __nextHasNoMarginBottom />
-			<TextareaControl label={ __( '本文（{フィールドキー} と {all_fields} が使えます）', 'wp-entry-form' ) } value={ a.body } onChange={ ( v ) => setA( { body: v } ) } __nextHasNoMarginBottom />
+			<h3>{ __( '管理者へのお知らせメール', 'wp-entry-form' ) }</h3>
+			<ToggleControl label={ __( '応募があったら管理者に通知する', 'wp-entry-form' ) } checked={ a.enabled } onChange={ ( v ) => setA( { enabled: v } ) } __nextHasNoMarginBottom />
+			{ a.enabled && (
+				<Fragment>
+					<TextControl label={ __( '通知先メールアドレス（カンマ区切り・空ならサイト管理者）', 'wp-entry-form' ) } value={ a.to } onChange={ ( v ) => setA( { to: v } ) } __nextHasNoMarginBottom />
+					<TextControl label={ __( 'メールの件名', 'wp-entry-form' ) } value={ a.subject } onChange={ ( v ) => setA( { subject: v } ) } __nextHasNoMarginBottom />
+					<TextareaControl label={ __( 'メール本文', 'wp-entry-form' ) } value={ a.body } onChange={ ( v ) => setA( { body: v } ) } help={ __( '{all_fields} で全項目、{保存名} で個別の入力値を差し込めます。', 'wp-entry-form' ) } __nextHasNoMarginBottom />
+				</Fragment>
+			) }
 
-			<h3 style={ { marginTop: 24 } }>{ __( '自動返信メール', 'wp-entry-form' ) }</h3>
-			<ToggleControl label={ __( '有効にする', 'wp-entry-form' ) } checked={ r.enabled } onChange={ ( v ) => setR( { enabled: v } ) } __nextHasNoMarginBottom />
-			<SelectControl
-				label={ __( '宛先となるメールフィールド', 'wp-entry-form' ) }
-				value={ r.to_field }
-				options={ [ { label: __( '— 選択 —', 'wp-entry-form' ), value: '' } ].concat( fieldKeys.map( ( k ) => ( { label: k, value: k } ) ) ) }
-				onChange={ ( v ) => setR( { to_field: v } ) }
-				__nextHasNoMarginBottom
-			/>
-			<TextControl label={ __( '差出人名', 'wp-entry-form' ) } value={ r.from_name } onChange={ ( v ) => setR( { from_name: v } ) } __nextHasNoMarginBottom />
-			<TextControl label={ __( '差出人メール', 'wp-entry-form' ) } value={ r.from_email } onChange={ ( v ) => setR( { from_email: v } ) } __nextHasNoMarginBottom />
-			<TextControl label={ __( '件名', 'wp-entry-form' ) } value={ r.subject } onChange={ ( v ) => setR( { subject: v } ) } __nextHasNoMarginBottom />
-			<TextareaControl label={ __( '本文', 'wp-entry-form' ) } value={ r.body } onChange={ ( v ) => setR( { body: v } ) } __nextHasNoMarginBottom />
+			<h3 style={ { marginTop: 24 } }>{ __( '応募者への自動返信メール', 'wp-entry-form' ) }</h3>
+			<ToggleControl label={ __( '応募者に自動で返信する', 'wp-entry-form' ) } checked={ r.enabled } onChange={ ( v ) => setR( { enabled: v } ) } __nextHasNoMarginBottom />
+			{ r.enabled && (
+				<Fragment>
+					<SelectControl
+						label={ __( '返信先にするメール項目', 'wp-entry-form' ) }
+						value={ r.to_field }
+						options={ [ { label: __( '— 選んでください —', 'wp-entry-form' ), value: '' } ].concat( fieldKeys.map( ( f ) => ( { label: f.label, value: f.key } ) ) ) }
+						onChange={ ( v ) => setR( { to_field: v } ) }
+						help={ __( 'メール型の項目を作っておくと選べます。', 'wp-entry-form' ) }
+						__nextHasNoMarginBottom
+					/>
+					<TextControl label={ __( '差出人の名前', 'wp-entry-form' ) } value={ r.from_name } onChange={ ( v ) => setR( { from_name: v } ) } __nextHasNoMarginBottom />
+					<TextControl label={ __( '差出人のメールアドレス', 'wp-entry-form' ) } value={ r.from_email } onChange={ ( v ) => setR( { from_email: v } ) } __nextHasNoMarginBottom />
+					<TextControl label={ __( 'メールの件名', 'wp-entry-form' ) } value={ r.subject } onChange={ ( v ) => setR( { subject: v } ) } __nextHasNoMarginBottom />
+					<TextareaControl label={ __( 'メール本文', 'wp-entry-form' ) } value={ r.body } onChange={ ( v ) => setR( { body: v } ) } __nextHasNoMarginBottom />
+				</Fragment>
+			) }
 		</Fragment>
 	);
 }
@@ -303,12 +410,12 @@ function SettingsSpam( { settings, set } ) {
 	const setRate = ( p ) => set( { spam: { ...spam, rate_limit: { ...rate, ...p } } } );
 	return (
 		<Fragment>
-			<ToggleControl label={ __( 'ハニーポット（隠し項目によるボット対策）', 'wp-entry-form' ) } checked={ spam.honeypot } onChange={ ( v ) => setSpam( { honeypot: v } ) } __nextHasNoMarginBottom />
-			<ToggleControl label={ __( '送信レート制限', 'wp-entry-form' ) } checked={ rate.enabled } onChange={ ( v ) => setRate( { enabled: v } ) } __nextHasNoMarginBottom />
+			<ToggleControl label={ __( 'いたずら送信を防ぐ（隠し項目によるボット対策）', 'wp-entry-form' ) } checked={ spam.honeypot } onChange={ ( v ) => setSpam( { honeypot: v } ) } __nextHasNoMarginBottom />
+			<ToggleControl label={ __( '短時間の連続送信を制限する', 'wp-entry-form' ) } checked={ rate.enabled } onChange={ ( v ) => setRate( { enabled: v } ) } __nextHasNoMarginBottom />
 			{ rate.enabled && (
-				<Flex gap={ 2 }>
-					<FlexBlock><TextControl type="number" label={ __( '最大回数', 'wp-entry-form' ) } value={ rate.max } onChange={ ( v ) => setRate( { max: parseInt( v, 10 ) || 1 } ) } __nextHasNoMarginBottom /></FlexBlock>
-					<FlexBlock><TextControl type="number" label={ __( '時間窓（秒）', 'wp-entry-form' ) } value={ rate.window } onChange={ ( v ) => setRate( { window: parseInt( v, 10 ) || 1 } ) } __nextHasNoMarginBottom /></FlexBlock>
+				<Flex className="wpef-row" gap={ 2 }>
+					<FlexBlock><TextControl type="number" label={ __( '許可する回数', 'wp-entry-form' ) } value={ rate.max } onChange={ ( v ) => setRate( { max: parseInt( v, 10 ) || 1 } ) } __nextHasNoMarginBottom /></FlexBlock>
+					<FlexBlock><TextControl type="number" label={ __( '対象の時間（秒）', 'wp-entry-form' ) } value={ rate.window } onChange={ ( v ) => setRate( { window: parseInt( v, 10 ) || 1 } ) } __nextHasNoMarginBottom /></FlexBlock>
 				</Flex>
 			) }
 		</Fragment>
@@ -357,7 +464,10 @@ function Builder() {
 	};
 
 	const setSettingsPartial = ( p ) => setSettings( ( prev ) => ( { ...prev, ...p } ) );
-	const fieldKeys = fields.filter( ( f ) => typeMeta( f.type ).input && f.key ).map( ( f ) => f.key );
+	// 自動返信の宛先候補（メール型を優先しつつ、キーを持つ入力フィールド全て）。
+	const fieldKeys = fields
+		.filter( ( f ) => typeMeta( f.type ).input && f.key )
+		.map( ( f ) => ( { key: f.key, label: f.label ? `${ f.label }（${ f.key }）` : f.key } ) );
 
 	return (
 		<div className="wpef-builder">
@@ -367,7 +477,7 @@ function Builder() {
 			<TabPanel
 				className="wpef-tabs"
 				tabs={ [
-					{ name: 'fields', title: __( 'フィールド', 'wp-entry-form' ) },
+					{ name: 'fields', title: __( '入力項目', 'wp-entry-form' ) },
 					{ name: 'basic', title: __( '基本設定', 'wp-entry-form' ) },
 					{ name: 'mail', title: __( 'メール', 'wp-entry-form' ) },
 					{ name: 'spam', title: __( 'スパム対策', 'wp-entry-form' ) },
@@ -378,7 +488,7 @@ function Builder() {
 						{ tab.name === 'fields' && (
 							<Fragment>
 								{ fields.length === 0 && (
-									<Notice status="info" isDismissible={ false }>{ __( '下のボタンからフィールドを追加してください。', 'wp-entry-form' ) }</Notice>
+									<Notice status="info" isDismissible={ false }>{ __( '下のボタンから入力項目を追加してください。', 'wp-entry-form' ) }</Notice>
 								) }
 								{ fields.map( ( field, i ) => (
 									<FieldCard
@@ -392,18 +502,16 @@ function Builder() {
 										dragHandlers={ dragHandlers }
 									/>
 								) ) }
-								<Card style={ { marginTop: 8 } }>
+								<Card className="wpef-add-card">
 									<CardBody>
-										<strong>{ __( 'フィールドを追加', 'wp-entry-form' ) }</strong>
-										<Flex wrap gap={ 1 } justify="flex-start" style={ { marginTop: 8 } }>
+										<strong>{ __( '入力項目を追加', 'wp-entry-form' ) }</strong>
+										<div className="wpef-add-buttons">
 											{ FIELD_TYPES.map( ( t ) => (
-												<FlexItem key={ t.type }>
-													<Button variant="secondary" size="compact" onClick={ () => addField( t.type ) }>
-														+ { t.label }
-													</Button>
-												</FlexItem>
+												<Button key={ t.type } variant="secondary" size="small" onClick={ () => addField( t.type ) }>
+													＋ { t.label }
+												</Button>
 											) ) }
-										</Flex>
+										</div>
 									</CardBody>
 								</Card>
 							</Fragment>
