@@ -12,7 +12,7 @@
  */
 import { createRoot, useState, useRef, Fragment } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { FaGear, FaGripVertical, FaChevronLeft, FaChevronRight, FaTrashCan, FaPlus } from 'react-icons/fa6';
+import { FaGear, FaGripVertical, FaTrashCan, FaPlus } from 'react-icons/fa6';
 import {
 	Button,
 	Modal,
@@ -399,7 +399,7 @@ function FieldDetails( { field, onChange } ) {
 /* ------------------------------------------------------------------ */
 /* キャンバス上の編集可能フィールド                                    */
 /* ------------------------------------------------------------------ */
-function EditableField( { field, index, total, onChange, onRemove, onMove, onResizeStart, dragHandlers } ) {
+function EditableField( { field, index, onChange, onRemove, onResizeStart, dragHandlers } ) {
 	const meta = typeMeta( field.type );
 	const cols = fieldCols( field );
 	const [ open, setOpen ] = useState( false );
@@ -433,15 +433,24 @@ function EditableField( { field, index, total, onChange, onRemove, onMove, onRes
 	return (
 		<div
 			className={ `wpef-ef wpef-col-${ cols }${ open ? ' is-open' : '' }` }
+			onDragEnter={ ( e ) => dragHandlers.onDragEnter( e, index ) }
 			onDragOver={ dragHandlers.onDragOver }
-			onDrop={ ( e ) => dragHandlers.onDrop( e, index ) }
+			onDrop={ dragHandlers.onDrop }
 		>
-			<div className="wpef-ef-toolbar">
-				<span className="wpef-drag-handle" draggable onDragStart={ ( e ) => dragHandlers.onDragStart( e, index ) } title={ __( 'ドラッグで移動', 'wp-entry-form' ) }><FaGripVertical aria-hidden="true" draggable={ false } /></span>
+			{ /* 左辺のドラッグハンドル */ }
+			<span
+				className="wpef-handle-left"
+				draggable
+				onDragStart={ ( e ) => dragHandlers.onDragStart( e, index ) }
+				onDragEnd={ dragHandlers.onDragEnd }
+				title={ __( 'ドラッグで並べ替え', 'wp-entry-form' ) }
+			>
+				<FaGripVertical aria-hidden="true" draggable={ false } />
+			</span>
+
+			{ /* ホバー時に右上角へ表示する操作 */ }
+			<div className="wpef-ef-actions">
 				<span className="wpef-ef-type">{ meta.label || field.type }</span>
-				<span className="wpef-ef-spacer" />
-				<Button size="small" variant="tertiary" disabled={ index === 0 } label={ __( '前へ', 'wp-entry-form' ) } onClick={ () => onMove( index, -1 ) }><FaChevronLeft aria-hidden="true" /></Button>
-				<Button size="small" variant="tertiary" disabled={ index === total - 1 } label={ __( '次へ', 'wp-entry-form' ) } onClick={ () => onMove( index, 1 ) }><FaChevronRight aria-hidden="true" /></Button>
 				<Button size="small" variant={ open ? 'primary' : 'tertiary' } aria-expanded={ open } label={ __( '詳細設定', 'wp-entry-form' ) } onClick={ () => setOpen( ! open ) }><FaGear aria-hidden="true" /></Button>
 				<Button size="small" isDestructive variant="tertiary" label={ __( '削除', 'wp-entry-form' ) } onClick={ () => onRemove( index ) }><FaTrashCan aria-hidden="true" /></Button>
 			</div>
@@ -471,7 +480,7 @@ function EditableField( { field, index, total, onChange, onRemove, onMove, onRes
 /* ------------------------------------------------------------------ */
 /* キャンバス（プレビュー＝編集面）                                    */
 /* ------------------------------------------------------------------ */
-function BuilderCanvas( { fields, settings, onChange, onRemove, onMove, onResize, onAdd, dragHandlers, gridRef } ) {
+function BuilderCanvas( { fields, settings, onChange, onRemove, onResize, onAdd, dragHandlers, gridRef } ) {
 	const submitLabel = settings.messages.submit_button || __( '送信する', 'wp-entry-form' );
 
 	const onResizeStart = ( e, index, startCols ) => {
@@ -512,10 +521,8 @@ function BuilderCanvas( { fields, settings, onChange, onRemove, onMove, onResize
 						key={ i }
 						field={ field }
 						index={ i }
-						total={ fields.length }
 						onChange={ onChange }
 						onRemove={ onRemove }
-						onMove={ onMove }
 						onResizeStart={ onResizeStart }
 						dragHandlers={ dragHandlers }
 					/>
@@ -628,40 +635,43 @@ function Builder() {
 	const [ fields, setFields ] = useState( initialFields );
 	const [ settings, setSettings ] = useState( defaultSettings( data.settings ) );
 	const gridRef = useRef( null );
-	let dragIndex = null;
+	const dragIndexRef = useRef( null );
 
 	const updateField = ( i, next ) => setFields( ( prev ) => prev.map( ( f, idx ) => ( idx === i ? next : f ) ) );
 	const removeField = ( i ) => setFields( ( prev ) => prev.filter( ( f, idx ) => idx !== i ) );
 	const addField = ( type ) => setFields( ( prev ) => [ ...prev, newField( type ) ] );
 	const resizeField = ( i, cols ) => setFields( ( prev ) => prev.map( ( f, idx ) => ( idx === i ? { ...f, cols: Math.max( 1, Math.min( GRID_COLS, cols ) ) } : f ) ) );
-	const moveField = ( i, dir ) => setFields( ( prev ) => {
-		const j = i + dir;
-		if ( j < 0 || j >= prev.length ) {
+
+	// ドラッグ中、ハンドルが乗った項目とリアルタイムに入れ替える。
+	const reorder = ( from, to ) => setFields( ( prev ) => {
+		if ( from === to || from < 0 || to < 0 || from >= prev.length || to >= prev.length ) {
 			return prev;
 		}
 		const next = prev.slice();
-		const tmp = next[ i ];
-		next[ i ] = next[ j ];
-		next[ j ] = tmp;
+		const [ moved ] = next.splice( from, 1 );
+		next.splice( to, 0, moved );
 		return next;
 	} );
 
 	const dragHandlers = {
-		onDragStart: ( e, i ) => { dragIndex = i; e.dataTransfer.effectAllowed = 'move'; },
-		onDragOver: ( e ) => { e.preventDefault(); },
-		onDrop: ( e, i ) => {
-			e.preventDefault();
-			if ( dragIndex === null || dragIndex === i ) {
+		onDragStart: ( e, i ) => {
+			dragIndexRef.current = i;
+			e.dataTransfer.effectAllowed = 'move';
+			try {
+				e.dataTransfer.setData( 'text/plain', String( i ) );
+			} catch ( _err ) {}
+		},
+		onDragEnter: ( e, i ) => {
+			const from = dragIndexRef.current;
+			if ( from === null || from === i ) {
 				return;
 			}
-			setFields( ( prev ) => {
-				const next = prev.slice();
-				const [ moved ] = next.splice( dragIndex, 1 );
-				next.splice( i, 0, moved );
-				return next;
-			} );
-			dragIndex = null;
+			reorder( from, i );
+			dragIndexRef.current = i;
 		},
+		onDragOver: ( e ) => { e.preventDefault(); },
+		onDragEnd: () => { dragIndexRef.current = null; },
+		onDrop: ( e ) => { e.preventDefault(); dragIndexRef.current = null; },
 	};
 
 	const setSettingsPartial = ( p ) => setSettings( ( prev ) => ( { ...prev, ...p } ) );
@@ -691,7 +701,6 @@ function Builder() {
 								settings={ settings }
 								onChange={ updateField }
 								onRemove={ removeField }
-								onMove={ moveField }
 								onResize={ resizeField }
 								onAdd={ addField }
 								dragHandlers={ dragHandlers }

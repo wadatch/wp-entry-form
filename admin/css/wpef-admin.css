@@ -55,7 +55,7 @@
 .wpef-ef {
 	position: relative;
 	grid-column: span 12;
-	padding: 8px 14px 12px 10px;
+	padding: 12px 18px 14px 24px; /* 左:ハンドル / 右:リサイズ の余白 */
 	border: 1px solid transparent;
 	border-radius: 6px;
 }
@@ -83,36 +83,57 @@
 .wpef-fullpreview-form > .wpef-col-11 { grid-column: span 11; }
 .wpef-fullpreview-form > .wpef-col-12 { grid-column: span 12; }
 
-/* ツールバー（ホバー／編集中に表示） */
-.wpef-ef-toolbar {
+/* 左辺の縦長ドラッグハンドル */
+.wpef-handle-left {
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 100%;
+	width: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #c3c4c7;
+	cursor: grab;
+	border-radius: 6px 0 0 6px;
+	user-select: none;
+	touch-action: none;
+}
+
+.wpef-ef:hover .wpef-handle-left {
+	color: #787c82;
+	background: #f6f7f7;
+}
+
+/* アイコンがドラッグを横取りしないように（ハンドル本体でドラッグ開始）。 */
+.wpef-handle-left svg {
+	pointer-events: none;
+}
+
+/* ホバー時に右上角へ表示する操作（編集・削除） */
+.wpef-ef-actions {
+	position: absolute;
+	top: 6px;
+	right: 16px;
 	display: flex;
 	align-items: center;
 	gap: 2px;
-	margin-bottom: 6px;
+	padding: 2px 4px;
+	background: #fff;
+	border: 1px solid #e0e0e0;
+	border-radius: 6px;
+	box-shadow: 0 1px 2px rgba( 0, 0, 0, 0.06 );
 	opacity: 0;
 	transition: opacity 0.1s;
 }
 
-.wpef-ef:hover .wpef-ef-toolbar,
-.wpef-ef:focus-within .wpef-ef-toolbar,
-.wpef-ef.is-open .wpef-ef-toolbar {
+.wpef-ef:hover .wpef-ef-actions,
+.wpef-ef:focus-within .wpef-ef-actions,
+.wpef-ef.is-open .wpef-ef-actions {
 	opacity: 1;
 }
 
-.wpef-ef-toolbar .wpef-drag-handle {
-	cursor: grab;
-	color: #787c82;
-	font-size: 1.1em;
-	user-select: none;
-}
-
-/* アイコンがドラッグを横取りしないように（ハンドル本体でドラッグ開始）。 */
-.wpef-drag-handle svg {
-	pointer-events: none;
-}
-
 .wpef-ef-type {
-	margin-left: 4px;
 	padding: 1px 9px;
 	font-size: 11px;
 	color: #fff;
@@ -120,10 +141,6 @@
 	border-radius: 10px;
 	white-space: nowrap;
 	flex-shrink: 0;
-}
-
-.wpef-ef-spacer {
-	flex: 1;
 }
 
 .wpef-ef-body {
@@ -459,8 +476,8 @@ body.wpef-resizing * {
 		grid-column: span 12 !important;
 	}
 
-	/* ツールバーは常時表示（ホバーが無いため）。 */
-	.wpef-ef-toolbar {
+	/* 操作は常時表示（ホバーが無いため）。 */
+	.wpef-ef-actions {
 		opacity: 1;
 	}
 
