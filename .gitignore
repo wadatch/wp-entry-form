@@ -1,6 +1,9 @@
 # --- WP Entry Form (plugin repository) ---
 # このリポジトリのルートがプラグイン本体。WordPress サイト用の gitignore とは異なる点に注意。
 
+# wp-env の個人ごとの上書き設定
+/.wp-env.override.json
+
 # 依存・ビルド成果物
 /node_modules/
 /vendor/

@@ -13,6 +13,16 @@
 
 - [要件定義書](docs/requirements.md)
 - [設計仕様書](docs/design.md)
+- [開発環境ガイド](docs/development.md)
+
+## ローカル開発環境（クイックスタート）
+
+WordPress 公式の wp-env（Docker）を使います。詳細は [開発環境ガイド](docs/development.md) を参照。
+
+```bash
+npm install        # @wordpress/env をインストール（要 Node.js 18+）
+npm run env:start  # http://localhost:8888 （管理画面 admin / password）
+```
 
 ## 開発・リリース運用
 

@@ -27,12 +27,17 @@ rsync -a \
 	--exclude 'vendor/bin/' \
 	--exclude '.gitignore' \
 	--exclude '.editorconfig' \
+	--exclude '.nvmrc' \
+	--exclude '.wp-env.json' \
+	--exclude '.wp-env.override.json' \
+	--exclude 'package.json' \
+	--exclude 'package-lock.json' \
 	--exclude '*.zip' \
 	--exclude '.DS_Store' \
 	"${ROOT}/" "${STAGE}/"
 
-# 将来フロントエンドのビルド工程を導入したらここで実行する。
-# if [ -f "${STAGE}/package.json" ]; then ( cd "${STAGE}" && npm ci && npm run build ); fi
+# 将来フロントエンドのビルド工程を導入したらここで実行する（自己参照を避けるため build:assets を想定）。
+# if [ -f "${STAGE}/package.json" ]; then ( cd "${STAGE}" && npm ci && npm run build:assets ); fi
 
 ( cd "${BUILD_DIR}" && zip -rq "${DIST_DIR}/${SLUG}.zip" "${SLUG}" )
 
