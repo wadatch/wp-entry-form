@@ -68,8 +68,13 @@ class WPEF_Shortcode {
 
 		$form = $id ? WPEF_DB::get_form( $id ) : null;
 
-		// 不在 or 非アクティブ。
-		if ( ! $form || ( isset( $form['status'] ) && 'active' !== $form['status'] ) ) {
+		if ( ! $form ) {
+			return self::notice_for_admin( $id, null );
+		}
+
+		// 公開状況。下書きは管理者にのみ通知し、一般訪問者には何も出さない。
+		$pub = WPEF_Form_State::state( $form );
+		if ( 'draft' === $pub ) {
 			return self::notice_for_admin( $id, $form );
 		}
 
@@ -82,19 +87,22 @@ class WPEF_Shortcode {
 		$return = $return ? remove_query_arg( 'wpef_token', $return ) : home_url( '/' );
 
 		// 送信フローの状態（PRG のトークン経由）を取り出す。
-		$token = isset( $_GET['wpef_token'] ) ? sanitize_text_field( wp_unslash( $_GET['wpef_token'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$flow  = class_exists( 'WPEF_Submit_Handler' ) ? WPEF_Submit_Handler::consume_flow( $token, $id ) : null;
-		$state = is_array( $flow ) && isset( $flow['state'] ) ? $flow['state'] : 'input';
+		$token      = isset( $_GET['wpef_token'] ) ? sanitize_text_field( wp_unslash( $_GET['wpef_token'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$flow       = class_exists( 'WPEF_Submit_Handler' ) ? WPEF_Submit_Handler::consume_flow( $token, $id ) : null;
+		$flow_state = is_array( $flow ) && isset( $flow['state'] ) ? $flow['state'] : 'input';
 
 		$inner = '<span id="wpef-form-' . (int) $id . '"></span>';
 
-		if ( 'success' === $state ) {
+		if ( 'success' === $flow_state ) {
 			$settings = is_array( $form['settings'] ) ? $form['settings'] : array();
 			$message  = isset( $settings['messages']['success'] ) && '' !== $settings['messages']['success']
 				? $settings['messages']['success']
 				: __( 'ご応募ありがとうございました。', 'wp-entry-form' );
 			$inner .= '<div class="wpef-success" role="status">' . wp_kses_post( wpautop( $message ) ) . '</div>';
-		} elseif ( 'confirm' === $state ) {
+		} elseif ( 'scheduled' === $pub || 'closed' === $pub ) {
+			// 受付期間外は誰にもメッセージのみ表示（フォームは出さない）。
+			$inner .= '<div class="wpef-closed" role="status">' . wp_kses_post( wpautop( WPEF_Form_State::closed_message( $form, $pub ) ) ) . '</div>';
+		} elseif ( 'confirm' === $flow_state ) {
 			$inner .= WPEF_Renderer::render_confirmation( $form, isset( $flow['values'] ) ? $flow['values'] : array(), array( 'return' => $return ) );
 		} else {
 			$inner .= WPEF_Renderer::render_form(

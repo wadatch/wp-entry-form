@@ -190,6 +190,15 @@
 	white-space: pre-wrap;
 }
 
+/* 受付期間外メッセージ */
+.wpef-closed {
+	padding: 1em 1.25em;
+	border: 1px solid #dba617;
+	border-radius: 4px;
+	background: #fcf9e8;
+	color: #1d2327;
+}
+
 /* 完了メッセージ */
 .wpef-success {
 	padding: 1em 1.25em;

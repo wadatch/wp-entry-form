@@ -51,6 +51,7 @@ $wpef_includes = array(
 	'includes/class-wpef-install.php',
 	'includes/class-wpef-db.php',
 	'includes/class-wpef-fields.php',
+	'includes/class-wpef-form-state.php',
 	'includes/class-wpef-validator.php',
 	'includes/class-wpef-renderer.php',
 	'includes/class-wpef-shortcode.php',

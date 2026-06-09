@@ -66,6 +66,12 @@ function defaultSettings( raw ) {
 			submit_button: messages.submit_button || __( '送信する', 'wp-entry-form' ),
 			confirm_button: messages.confirm_button || __( '入力内容を確認', 'wp-entry-form' ),
 			back_button: messages.back_button || __( '戻る', 'wp-entry-form' ),
+			before_open: messages.before_open || '',
+			closed: messages.closed || '',
+		},
+		schedule: {
+			open: ( s.schedule && s.schedule.open ) || '',
+			close: ( s.schedule && s.schedule.close ) || '',
 		},
 		redirect_url: s.redirect_url || '',
 		admin_notification: {
@@ -525,11 +531,35 @@ function BuilderCanvas( { fields, settings, onChange, onRemove, onResize, onAdd,
 /* ------------------------------------------------------------------ */
 /* フォーム全体の設定タブ                                              */
 /* ------------------------------------------------------------------ */
-function SettingsBasic( { settings, set } ) {
+function SettingsBasic( { settings, set, status, setStatus } ) {
 	const m = settings.messages;
+	const sched = settings.schedule || { open: '', close: '' };
 	const setMsg = ( p ) => set( { messages: { ...m, ...p } } );
+	const setSched = ( p ) => set( { schedule: { ...sched, ...p } } );
 	return (
 		<div className="wpef-settings-panel">
+			<h3>{ __( '公開設定', 'wp-entry-form' ) }</h3>
+			<SelectControl
+				label={ __( '公開状態', 'wp-entry-form' ) }
+				value={ status }
+				options={ [
+					{ label: __( '下書き（非公開）', 'wp-entry-form' ), value: 'draft' },
+					{ label: __( '公開', 'wp-entry-form' ), value: 'published' },
+					{ label: __( '締めきり（受付停止）', 'wp-entry-form' ), value: 'closed' },
+				] }
+				onChange={ ( v ) => setStatus( v ) }
+				__nextHasNoMarginBottom
+			/>
+			{ status === 'published' && (
+				<Fragment>
+					<TextControl type="datetime-local" label={ __( '自動公開する日時（任意・この日時まで受付前表示）', 'wp-entry-form' ) } value={ sched.open } onChange={ ( v ) => setSched( { open: v } ) } __nextHasNoMarginBottom />
+					<TextControl type="datetime-local" label={ __( '自動締めきりの日時（任意・この日時以降は受付停止）', 'wp-entry-form' ) } value={ sched.close } onChange={ ( v ) => setSched( { close: v } ) } __nextHasNoMarginBottom />
+					<TextControl label={ __( '受付開始前のメッセージ（任意）', 'wp-entry-form' ) } value={ m.before_open } onChange={ ( v ) => setMsg( { before_open: v } ) } __nextHasNoMarginBottom />
+					<TextControl label={ __( '締めきり後のメッセージ（任意）', 'wp-entry-form' ) } value={ m.closed } onChange={ ( v ) => setMsg( { closed: v } ) } __nextHasNoMarginBottom />
+				</Fragment>
+			) }
+
+			<h3 className="wpef-section-gap">{ __( '送信の挙動', 'wp-entry-form' ) }</h3>
 			<ToggleControl label={ __( '送信前に確認画面を表示する', 'wp-entry-form' ) } checked={ settings.confirmation_screen } onChange={ ( v ) => set( { confirmation_screen: v } ) } __nextHasNoMarginBottom />
 			<TextControl label={ __( '送信ボタンの文言', 'wp-entry-form' ) } value={ m.submit_button } onChange={ ( v ) => setMsg( { submit_button: v } ) } __nextHasNoMarginBottom />
 			{ settings.confirmation_screen && (
@@ -610,6 +640,7 @@ function Builder() {
 	const initialFields = ( Array.isArray( data.fields ) ? data.fields : [] ).map( ( f ) => ( { ...f, cols: fieldCols( f ) } ) );
 	const [ fields, setFields ] = useState( initialFields );
 	const [ settings, setSettings ] = useState( defaultSettings( data.settings ) );
+	const [ status, setStatus ] = useState( data.status || 'published' );
 	const gridRef = useRef( null );
 	const dragIndexRef = useRef( null );
 
@@ -659,6 +690,7 @@ function Builder() {
 		<div className="wpef-builder">
 			<input type="hidden" name="wpef_fields" value={ JSON.stringify( fields ) } />
 			<input type="hidden" name="wpef_settings" value={ JSON.stringify( settings ) } />
+			<input type="hidden" name="wpef_status" value={ status } />
 
 			<TabPanel
 				className="wpef-tabs"
@@ -684,7 +716,7 @@ function Builder() {
 								gridRef={ gridRef }
 							/>
 						) }
-						{ tab.name === 'basic' && <SettingsBasic settings={ settings } set={ setSettingsPartial } /> }
+						{ tab.name === 'basic' && <SettingsBasic settings={ settings } set={ setSettingsPartial } status={ status } setStatus={ setStatus } /> }
 						{ tab.name === 'mail' && <SettingsMail settings={ settings } set={ setSettingsPartial } fieldKeys={ fieldKeys } /> }
 						{ tab.name === 'spam' && <SettingsSpam settings={ settings } set={ setSettingsPartial } /> }
 					</div>

@@ -60,7 +60,7 @@ class WPEF_Form_Builder {
 				echo '<tr>';
 				echo '<td>' . (int) $form['id'] . '</td>';
 				echo '<td><a href="' . esc_url( $edit_url ) . '"><strong>' . esc_html( $form['title'] ) . '</strong></a></td>';
-				echo '<td>' . esc_html( $form['status'] ) . '</td>';
+				echo '<td>' . esc_html( WPEF_Form_State::status_label( $form['status'] ) ) . '</td>';
 				echo '<td><code>[entry_form id="' . (int) $form['id'] . '"]</code></td>';
 				echo '<td>';
 				echo '<a href="' . esc_url( $edit_url ) . '">' . esc_html__( '編集', 'wp-entry-form' ) . '</a> | ';
@@ -91,7 +91,12 @@ class WPEF_Form_Builder {
 		self::render_notice( $notice_key );
 
 		if ( ! $is_new ) {
-			echo '<p>' . esc_html__( 'ショートコード:', 'wp-entry-form' ) . ' <code>[entry_form id="' . (int) $form_id . '"]</code></p>';
+			echo '<p>' . esc_html__( 'ショートコード:', 'wp-entry-form' ) . ' <code>[entry_form id="' . (int) $form_id . '"]</code>';
+			if ( class_exists( 'WPEF_Submissions' ) ) {
+				echo ' &nbsp; <a href="' . esc_url( WPEF_Submissions::page_url( array( 'form_id' => (int) $form_id ) ) ) . '">' . esc_html__( 'このフォームの送信データを見る', 'wp-entry-form' ) . '</a>';
+				echo ' | <a href="' . esc_url( WPEF_Submissions::overview_url() ) . '">' . esc_html__( '入力状況一覧', 'wp-entry-form' ) . '</a>';
+			}
+			echo '</p>';
 		}
 
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
@@ -150,9 +155,11 @@ class WPEF_Form_Builder {
 		$fields_raw   = isset( $_POST['wpef_fields'] ) ? json_decode( wp_unslash( $_POST['wpef_fields'] ), true ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
 		$settings_raw = isset( $_POST['wpef_settings'] ) ? json_decode( wp_unslash( $_POST['wpef_settings'] ), true ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
 
+		$status = isset( $_POST['wpef_status'] ) ? WPEF_Form_State::normalize_status( sanitize_key( wp_unslash( $_POST['wpef_status'] ) ) ) : 'published';
+
 		$data = array(
 			'title'    => '' !== $title ? $title : __( '無題のフォーム', 'wp-entry-form' ),
-			'status'   => 'active',
+			'status'   => $status,
 			'fields'   => self::sanitize_fields( is_array( $fields_raw ) ? $fields_raw : array() ),
 			'settings' => self::sanitize_settings( is_array( $settings_raw ) ? $settings_raw : array() ),
 		);
@@ -197,7 +204,7 @@ class WPEF_Form_Builder {
 					array(
 						/* translators: %s: 元フォーム名 */
 						'title'    => sprintf( __( '%s のコピー', 'wp-entry-form' ), $src['title'] ),
-						'status'   => 'active',
+						'status'   => 'draft',
 						'fields'   => $src['fields'],
 						'settings' => $src['settings'],
 					)
@@ -401,6 +408,8 @@ class WPEF_Form_Builder {
 			}
 		}
 
+		$schedule = isset( $raw['schedule'] ) && is_array( $raw['schedule'] ) ? $raw['schedule'] : array();
+
 		return array(
 			'confirmation_screen' => ! empty( $raw['confirmation_screen'] ),
 			'messages'            => array(
@@ -408,6 +417,12 @@ class WPEF_Form_Builder {
 				'submit_button'  => isset( $messages['submit_button'] ) ? sanitize_text_field( $messages['submit_button'] ) : __( '送信する', 'wp-entry-form' ),
 				'confirm_button' => isset( $messages['confirm_button'] ) ? sanitize_text_field( $messages['confirm_button'] ) : __( '入力内容を確認', 'wp-entry-form' ),
 				'back_button'    => isset( $messages['back_button'] ) ? sanitize_text_field( $messages['back_button'] ) : __( '戻る', 'wp-entry-form' ),
+				'before_open'    => isset( $messages['before_open'] ) ? sanitize_text_field( $messages['before_open'] ) : '',
+				'closed'         => isset( $messages['closed'] ) ? sanitize_text_field( $messages['closed'] ) : '',
+			),
+			'schedule'            => array(
+				'open'  => isset( $schedule['open'] ) ? sanitize_text_field( $schedule['open'] ) : '',
+				'close' => isset( $schedule['close'] ) ? sanitize_text_field( $schedule['close'] ) : '',
 			),
 			'redirect_url'        => isset( $raw['redirect_url'] ) ? esc_url_raw( $raw['redirect_url'] ) : '',
 			'admin_notification'  => array(

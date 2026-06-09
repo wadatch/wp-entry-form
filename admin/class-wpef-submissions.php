@@ -347,7 +347,7 @@ class WPEF_Submissions {
 
 				echo '<tr>';
 				echo '<td><a href="' . esc_url( $list_url ) . '"><strong>' . esc_html( $form['title'] ) . '</strong></a><br /><span class="description"><a href="' . esc_url( $edit_url ) . '">' . esc_html__( '編集', 'wp-entry-form' ) . '</a></span></td>';
-				echo '<td>' . esc_html( $form['status'] ) . '</td>';
+				echo '<td>' . esc_html( WPEF_Form_State::status_label( $form['status'] ) ) . '</td>';
 				echo '<td><a href="' . esc_url( $list_url ) . '"><strong>' . $received . '</strong></a></td>';
 				echo '<td>' . ( $spam ? '<a href="' . esc_url( self::page_url( array( 'form_id' => $fid, 'wpef_status' => 'spam' ) ) ) . '">' . $spam . '</a>' : '0' ) . '</td>';
 				echo '<td>' . $trash . '</td>';
@@ -406,32 +406,36 @@ class WPEF_Submissions {
 		// Excel 互換のため UTF-8 BOM を先頭に。
 		fwrite( $out, "\xEF\xBB\xBF" );
 
-		// ヘッダ行。
-		$header = array( __( 'ID', 'wp-entry-form' ), __( '送信日時', 'wp-entry-form' ), __( 'ステータス', 'wp-entry-form' ), __( 'IP アドレス', 'wp-entry-form' ) );
+		// ヘッダ行。単一フォームは画面の表示に合わせて「ID → 各項目 → ステータス → 送信日時 → IP」。
 		if ( $field_defs ) {
+			$header = array( __( 'ID', 'wp-entry-form' ) );
 			foreach ( $field_defs as $field ) {
 				$header[] = '' !== $field['label'] ? $field['label'] : $field['key'];
 			}
+			$header[] = __( 'ステータス', 'wp-entry-form' );
+			$header[] = __( '送信日時', 'wp-entry-form' );
+			$header[] = __( 'IP アドレス', 'wp-entry-form' );
 		} else {
-			$header[] = __( 'データ(JSON)', 'wp-entry-form' );
+			$header = array( __( 'ID', 'wp-entry-form' ), __( 'フォーム ID', 'wp-entry-form' ), __( 'ステータス', 'wp-entry-form' ), __( '送信日時', 'wp-entry-form' ), __( 'IP アドレス', 'wp-entry-form' ), __( 'データ(JSON)', 'wp-entry-form' ) );
 		}
 		fputcsv( $out, $header );
 
 		foreach ( $rows as $row ) {
-			$ts   = strtotime( $row['created_at'] . ' UTC' );
-			$line = array(
-				$row['id'],
-				$ts ? wp_date( 'Y-m-d H:i:s', $ts ) : $row['created_at'],
-				WPEF_Submissions_Table::status_label( $row['status'] ),
-				$row['ip_address'],
-			);
-			$data = is_array( $row['data'] ) ? $row['data'] : array();
+			$ts     = strtotime( $row['created_at'] . ' UTC' );
+			$date   = $ts ? wp_date( 'Y-m-d H:i:s', $ts ) : $row['created_at'];
+			$status = WPEF_Submissions_Table::status_label( $row['status'] );
+			$data   = is_array( $row['data'] ) ? $row['data'] : array();
+
 			if ( $field_defs ) {
+				$line = array( $row['id'] );
 				foreach ( $field_defs as $key => $field ) {
 					$line[] = isset( $data[ $key ] ) ? WPEF_Fields::value_to_text( $field, $data[ $key ] ) : '';
 				}
+				$line[] = $status;
+				$line[] = $date;
+				$line[] = $row['ip_address'];
 			} else {
-				$line[] = wp_json_encode( $data, JSON_UNESCAPED_UNICODE );
+				$line = array( $row['id'], $row['form_id'], $status, $date, $row['ip_address'], wp_json_encode( $data, JSON_UNESCAPED_UNICODE ) );
 			}
 			fputcsv( $out, $line );
 		}
