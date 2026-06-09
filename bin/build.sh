@@ -36,6 +36,17 @@ rsync -a \
 	--exclude '.DS_Store' \
 	"${ROOT}/" "${STAGE}/"
 
+# リリースビルド時はバージョンをプラグインヘッダへ注入する（採番規則: docs/versioning.md）。
+# WPEF_BUILD_VERSION が未設定（ローカルでの手動ビルド等）なら 0.0.0 プレースホルダのまま。
+VERSION="${WPEF_BUILD_VERSION:-}"
+if [ -n "${VERSION}" ]; then
+	MAIN="${STAGE}/wp-entry-form.php"
+	# ヘッダの "Version:" 行を置換（BSD/GNU sed 双方で動くよう [[:space:]] を使用）。
+	sed -i.bak -E "s|^([[:space:]]*\*[[:space:]]*Version:)[[:space:]]*.*|\1           ${VERSION}|" "${MAIN}"
+	rm -f "${MAIN}.bak"
+	echo "Injected Version: ${VERSION}"
+fi
+
 # 将来フロントエンドのビルド工程を導入したらここで実行する（自己参照を避けるため build:assets を想定）。
 # if [ -f "${STAGE}/package.json" ]; then ( cd "${STAGE}" && npm ci && npm run build:assets ); fi
 

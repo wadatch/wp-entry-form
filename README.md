@@ -14,6 +14,7 @@
 - [要件定義書](docs/requirements.md)
 - [設計仕様書](docs/design.md)
 - [開発環境ガイド](docs/development.md)
+- [バージョニング規約](docs/versioning.md)
 
 ## ローカル開発環境（クイックスタート）
 
@@ -29,8 +30,9 @@ npm run env:start  # http://localhost:8888 （管理画面 admin / password）
 ソース管理は GitHub リポジトリ <https://github.com/wadatch/wp-entry-form> で行います。
 
 - **`main` への直接コミットは禁止**です。作業ブランチを切って Pull Request 経由でマージしてください。
-- PR が `main` にマージされると、GitHub Actions（`.github/workflows/release.yml`）がプラグインヘッダの `Version` を読み取り、**同名タグが無ければ** 配布 zip をビルドし、タグを打ち、GitHub Release を作成します。
-  - リリースしたいときは `wp-entry-form.php` の `Version:` を更新してからマージしてください。バージョン未更新のマージではリリースは作成されません。
+- PR が `main` にマージされるたびに、GitHub Actions（`.github/workflows/release.yml`）が**自動採番**して配布 zip をビルドし、タグを打ち、GitHub Release を作成します。
+  - 採番形式は `MAJOR.YYYYMMDD.連番`（例 `0.20260609.1`）。バージョン番号を手で編集する必要はありません。
+  - **破壊的変更のときだけ** `wp-entry-form.php` の `WPEF_MAJOR_VERSION` を +1 してください。詳細は [バージョニング規約](docs/versioning.md)。
 - PR には CI（`.github/workflows/ci.yml`）で PHP の構文チェックが走ります。
 
 ### ローカルでのビルド
