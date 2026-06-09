@@ -105,7 +105,8 @@ function defaultSettings( raw ) {
 
 function newField( type ) {
 	const meta = typeMeta( type );
-	const f = { type, label: '', cols: GRID_COLS };
+	// 初期ラベルは型名（例：1行テキスト）。あとから編集できる。
+	const f = { type, label: meta.label || type, cols: GRID_COLS };
 	if ( meta.input ) {
 		f.key = '';
 		f.required = false;
@@ -225,17 +226,76 @@ function PreviewControl( { field } ) {
 	}
 }
 
-/* クリックで直接編集できるラベル。 */
+/* クリックしたときだけ編集できるテキスト（普段は通常表示）。 */
+function EditableText( { value, onChange, className, placeholder } ) {
+	const [ editing, setEditing ] = useState( false );
+
+	if ( editing ) {
+		return (
+			<input
+				type="text"
+				className={ className }
+				value={ value }
+				placeholder={ placeholder }
+				autoFocus
+				onChange={ ( e ) => onChange( e.target.value ) }
+				onBlur={ () => setEditing( false ) }
+				onKeyDown={ ( e ) => {
+					if ( e.key === 'Enter' ) {
+						e.preventDefault();
+						setEditing( false );
+					}
+				} }
+			/>
+		);
+	}
+
+	const startEdit = ( e ) => {
+		e.stopPropagation();
+		setEditing( true );
+	};
+
+	return (
+		<span
+			className={ `${ className } wpef-editable` }
+			role="button"
+			tabIndex={ 0 }
+			title={ __( 'クリックして編集', 'wp-entry-form' ) }
+			onClick={ startEdit }
+			onKeyDown={ ( e ) => {
+				if ( e.key === 'Enter' || e.key === ' ' ) {
+					e.preventDefault();
+					setEditing( true );
+				}
+			} }
+		>
+			{ value !== '' ? value : <span className="wpef-placeholder">{ placeholder }</span> }
+		</span>
+	);
+}
+
+/* 型に応じたラベルのクリック編集。 */
 function InlineLabel( { field, patch } ) {
 	const t = field.type;
+	const className = t === 'heading' ? 'wpef-inline-heading' : ( t === 'paragraph' ? 'wpef-inline-para' : 'wpef-inline-label' );
+	let placeholder;
 	if ( t === 'heading' ) {
-		return <input type="text" className="wpef-inline-heading" value={ field.label || '' } placeholder={ __( '見出しを入力', 'wp-entry-form' ) } onChange={ ( e ) => patch( { label: e.target.value } ) } />;
+		placeholder = __( '見出しを入力', 'wp-entry-form' );
+	} else if ( t === 'paragraph' ) {
+		placeholder = __( '説明文を入力', 'wp-entry-form' );
+	} else if ( t === 'consent' ) {
+		placeholder = __( '同意の文を入力', 'wp-entry-form' );
+	} else {
+		placeholder = __( '項目名を入力（例：お名前）', 'wp-entry-form' );
 	}
-	if ( t === 'paragraph' ) {
-		return <input type="text" className="wpef-inline-para" value={ field.label || '' } placeholder={ __( '説明文を入力', 'wp-entry-form' ) } onChange={ ( e ) => patch( { label: e.target.value } ) } />;
-	}
-	const ph = t === 'consent' ? __( '同意の文を入力', 'wp-entry-form' ) : __( '項目名を入力（例：お名前）', 'wp-entry-form' );
-	return <input type="text" className="wpef-inline-label" value={ field.label || '' } placeholder={ ph } onChange={ ( e ) => patch( { label: e.target.value } ) } />;
+	return (
+		<EditableText
+			value={ field.label || '' }
+			onChange={ ( v ) => patch( { label: v } ) }
+			className={ className }
+			placeholder={ placeholder }
+		/>
+	);
 }
 
 /* ------------------------------------------------------------------ */

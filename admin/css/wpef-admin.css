@@ -219,18 +219,33 @@ body.wpef-resizing * {
 	color: #1d2327;
 }
 
-.wpef-inline-label:hover,
-.wpef-inline-heading:hover,
-.wpef-inline-para:hover {
-	border-color: #dcdcde;
-}
-
 .wpef-inline-label:focus,
 .wpef-inline-heading:focus,
 .wpef-inline-para:focus {
 	border-color: #2271b1;
 	outline: none;
 	background: #fff;
+}
+
+/* 表示モード（クリックで編集）。普段は通常テキスト、ホバーで編集可能を示す。 */
+.wpef-editable {
+	cursor: text;
+	min-height: 1.4em;
+}
+
+.wpef-editable:hover {
+	border-color: #dcdcde;
+	background: #fff;
+}
+
+.wpef-editable:focus {
+	border-color: #2271b1;
+	outline: none;
+}
+
+.wpef-placeholder {
+	color: #a7aaad;
+	font-weight: 400;
 }
 
 /* ---- プレビューの入力欄（操作不可） ---- */
