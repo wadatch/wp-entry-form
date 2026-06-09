@@ -1,0 +1,70 @@
+name: Release plugin
+
+# main への push（= PR マージ）で起動。プラグインヘッダの Version を読み、
+# 同名タグが無ければビルド → タグ付け → GitHub Release を作成する。
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read plugin version
+        id: ver
+        run: |
+          set -euo pipefail
+          FILE="wp-entry-form.php"
+          if [ ! -f "$FILE" ]; then
+            echo "プラグイン本体ファイルがまだありません。リリースをスキップします。"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          VERSION=$(grep -iE '^[[:space:]]*\*?[[:space:]]*Version:' "$FILE" | head -1 | sed -E 's/.*Version:[[:space:]]*//' | tr -d '[:space:]\r')
+          if [ -z "$VERSION" ]; then
+            echo "Version ヘッダが見つかりません。スキップします。"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "検出したバージョン: $VERSION (tag: v$VERSION)"
+
+      - name: Check whether tag already exists
+        id: check
+        if: steps.ver.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          if git ls-remote --tags origin "refs/tags/${{ steps.ver.outputs.tag }}" | grep -q "${{ steps.ver.outputs.tag }}"; then
+            echo "タグ ${{ steps.ver.outputs.tag }} は既に存在します。リリースしません。"
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build plugin zip
+        if: steps.ver.outputs.skip != 'true' && steps.check.outputs.exists == 'false'
+        run: bash bin/build.sh
+
+      - name: Create tag and GitHub Release
+        if: steps.ver.outputs.skip != 'true' && steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release create "${{ steps.ver.outputs.tag }}" \
+            "dist/wp-entry-form.zip" \
+            --title "${{ steps.ver.outputs.tag }}" \
+            --target "${{ github.sha }}" \
+            --generate-notes

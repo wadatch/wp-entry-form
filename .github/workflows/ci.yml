@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP syntax check (php -l)
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find . -path ./vendor -prune -o -name '*.php' -print)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "PHP ファイルがまだありません。スキップします。"
+            exit 0
+          fi
+          for f in "${files[@]}"; do
+            php -l "$f"
+          done
