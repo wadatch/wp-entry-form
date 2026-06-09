@@ -157,10 +157,36 @@ class WPEF_Fields {
 			)
 		);
 		$field['required'] = (bool) $field['required'];
+		$field['cols']     = self::resolve_cols( $field );
 		if ( ! is_array( $field['options'] ) ) {
 			$field['options'] = array();
 		}
 		return $field;
+	}
+
+	/**
+	 * フィールドのグリッド列数（1〜12）を解決する。
+	 *
+	 * cols があればそれを、無ければ旧来の名前付き width から移行、どちらも無ければ全幅(12)。
+	 *
+	 * @param array $field フィールド（生 or 正規化途中）。
+	 * @return int
+	 */
+	public static function resolve_cols( $field ) {
+		if ( isset( $field['cols'] ) && is_numeric( $field['cols'] ) ) {
+			return max( 1, min( 12, (int) $field['cols'] ) );
+		}
+		$legacy = array(
+			'full'       => 12,
+			'two_thirds' => 8,
+			'half'       => 6,
+			'third'      => 4,
+			'quarter'    => 3,
+		);
+		if ( isset( $field['width'] ) && isset( $legacy[ $field['width'] ] ) ) {
+			return $legacy[ $field['width'] ];
+		}
+		return 12;
 	}
 
 	/**

@@ -48,10 +48,12 @@ class WPEF_Renderer {
 			$out .= '<div class="wpef-form-errors" role="alert">' . esc_html__( '入力内容に誤りがあります。各項目をご確認ください。', 'wp-entry-form' ) . '</div>';
 		}
 
-		// 各フィールド。
+		// 各フィールド（横並び可能なグリッド内に配置）。
+		$out .= '<div class="wpef-grid">';
 		foreach ( $fields as $raw_field ) {
 			$out .= self::render_field( $raw_field, $form_id, $values, $errors );
 		}
+		$out .= '</div>';
 
 		// ハニーポット（人間には見えないダミー項目）。
 		if ( $honeypot_on ) {
@@ -90,12 +92,14 @@ class WPEF_Renderer {
 			return '';
 		}
 
+		$width = self::width_class( $field );
+
 		// 表示専用要素。
 		if ( 'heading' === $type ) {
-			return '<h3 class="wpef-heading">' . esc_html( $field['label'] ) . '</h3>';
+			return '<h3 class="wpef-heading ' . esc_attr( $width ) . '">' . esc_html( $field['label'] ) . '</h3>';
 		}
 		if ( 'paragraph' === $type ) {
-			return '<div class="wpef-paragraph">' . wp_kses_post( wpautop( $field['label'] ) ) . '</div>';
+			return '<div class="wpef-paragraph ' . esc_attr( $width ) . '">' . wp_kses_post( wpautop( $field['label'] ) ) . '</div>';
 		}
 
 		$key = $field['key'];
@@ -115,7 +119,7 @@ class WPEF_Renderer {
 			$describe[] = $id . '-error';
 		}
 
-		$wrap_class = 'wpef-field wpef-field-' . sanitize_html_class( $type );
+		$wrap_class = 'wpef-field wpef-field-' . sanitize_html_class( $type ) . ' ' . $width;
 		if ( $has_error ) {
 			$wrap_class .= ' wpef-has-error';
 		}
@@ -150,7 +154,7 @@ class WPEF_Renderer {
 	 * @return string
 	 */
 	private static function render_label( $field, $id, $type ) {
-		$required = $field['required'] ? ' <span class="wpef-required" aria-hidden="true">*</span>' : '';
+		$required = $field['required'] ? ' ' . self::required_badge() : '';
 		// グループ系は <label for> ではなく見出しとして扱う（実際の関連付けは fieldset/legend）。
 		if ( in_array( $type, array( 'radio', 'checkbox' ), true ) ) {
 			return '<span class="wpef-label">' . esc_html( $field['label'] ) . $required . '</span>';
@@ -252,7 +256,7 @@ class WPEF_Renderer {
 	 */
 	private static function render_consent( $field, $id, $value, $describe ) {
 		$name     = 'wpef[' . $field['key'] . ']';
-		$required = $field['required'] ? ' <span class="wpef-required" aria-hidden="true">*</span>' : '';
+		$required = $field['required'] ? ' ' . self::required_badge() : '';
 		$attrs    = $field['required'] ? ' aria-required="true"' : '';
 		if ( ! empty( $describe ) ) {
 			$attrs .= ' aria-describedby="' . esc_attr( implode( ' ', $describe ) ) . '"';
@@ -300,6 +304,29 @@ class WPEF_Renderer {
 			);
 		}
 		return $out;
+	}
+
+	/**
+	 * 必須バッジ（[必須] / 翻訳で [required] 等）の HTML を返す。
+	 *
+	 * 視覚表示用。スクリーンリーダーには入力要素の aria-required で伝えるため aria-hidden。
+	 *
+	 * @return string
+	 */
+	private static function required_badge() {
+		return '<span class="wpef-required" aria-hidden="true">[' . esc_html__( '必須', 'wp-entry-form' ) . ']</span>';
+	}
+
+	/**
+	 * フィールドの横幅クラスを返す（12カラム中の列数）。
+	 *
+	 * @param array $field 正規化済みフィールド。
+	 * @return string 例: wpef-col-12 / wpef-col-6。
+	 */
+	private static function width_class( $field ) {
+		$cols = isset( $field['cols'] ) ? (int) $field['cols'] : 12;
+		$cols = max( 1, min( 12, $cols ) );
+		return 'wpef-col-' . $cols;
 	}
 
 	/**
