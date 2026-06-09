@@ -33,13 +33,13 @@ const FIELD_TYPES = data.fieldTypes || [];
 // プレースホルダ（入力欄のヒント）を持てる型。
 const HINT_TYPES = [ 'text', 'textarea', 'email', 'tel', 'url', 'number', 'date' ];
 
-// 横幅（グリッドの列幅）の選択肢。スマホでは自動的に全幅になる。
+// 横幅（グリッドの列幅）の選択肢。fill は見た目の比率バーの割合(%)。スマホでは自動的に全幅。
 const WIDTHS = [
-	{ value: 'full', label: __( '全幅', 'wp-entry-form' ) },
-	{ value: 'two_thirds', label: __( '2/3', 'wp-entry-form' ) },
-	{ value: 'half', label: __( '1/2', 'wp-entry-form' ) },
-	{ value: 'third', label: __( '1/3', 'wp-entry-form' ) },
-	{ value: 'quarter', label: __( '1/4', 'wp-entry-form' ) },
+	{ value: 'full', label: __( '全幅', 'wp-entry-form' ), fill: 100 },
+	{ value: 'two_thirds', label: '2/3', fill: 66.66 },
+	{ value: 'half', label: '1/2', fill: 50 },
+	{ value: 'third', label: '1/3', fill: 33.33 },
+	{ value: 'quarter', label: '1/4', fill: 25 },
 ];
 
 function typeMeta( type ) {
@@ -211,15 +211,27 @@ function FieldPreview( { field } ) {
 /* 左カラム: フィールドの設定                                          */
 /* ------------------------------------------------------------------ */
 function WidthControl( { field, patch } ) {
+	const current = field.width || 'full';
 	return (
-		<SelectControl
-			label={ __( '横幅（列）', 'wp-entry-form' ) }
-			value={ field.width || 'full' }
-			options={ WIDTHS }
-			onChange={ ( v ) => patch( { width: v } ) }
-			help={ __( '狭い幅にすると項目を横に並べられます。スマホでは自動で全幅になります。', 'wp-entry-form' ) }
-			__nextHasNoMarginBottom
-		/>
+		<div className="wpef-width-control">
+			<p className="wpef-ctrl-label">{ __( '横幅', 'wp-entry-form' ) }</p>
+			<div className="wpef-width-picker" role="group" aria-label={ __( '横幅', 'wp-entry-form' ) }>
+				{ WIDTHS.map( ( w ) => (
+					<button
+						type="button"
+						key={ w.value }
+						className={ 'wpef-wbtn' + ( current === w.value ? ' is-active' : '' ) }
+						aria-pressed={ current === w.value }
+						title={ w.label }
+						onClick={ () => patch( { width: w.value } ) }
+					>
+						<span className="wpef-wbar"><span className="wpef-wfill" style={ { width: w.fill + '%' } } /></span>
+						<span className="wpef-wlabel">{ w.label }</span>
+					</button>
+				) ) }
+			</div>
+			<p className="wpef-width-hint">{ __( '狭い幅にすると項目を横に並べられます。スマホでは自動で全幅になります。', 'wp-entry-form' ) }</p>
+		</div>
 	);
 }
 
