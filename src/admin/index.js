@@ -146,7 +146,7 @@ function OptionsEditor( { options, onChange } ) {
 					<Button isDestructive variant="tertiary" label={ __( '削除', 'wp-entry-form' ) } onClick={ () => onChange( list.filter( ( o, idx ) => idx !== i ) ) }><FaTrashCan aria-hidden="true" /></Button>
 				</div>
 			) ) }
-			<Button variant="secondary" size="small" icon={ <FaPlus aria-hidden="true" /> } onClick={ () => onChange( [ ...list, { label: '', value: '' } ] ) }>
+			<Button variant="secondary" size="small" icon={ <FaPlus aria-hidden="true" /> } iconSize={ 14 } onClick={ () => onChange( [ ...list, { label: '', value: '' } ] ) }>
 				{ __( '選択肢を追加', 'wp-entry-form' ) }
 			</Button>
 		</div>
@@ -459,7 +459,7 @@ function BuilderCanvas( { fields, settings, onChange, onRemove, onMove, onResize
 				<strong>{ __( '入力項目を追加', 'wp-entry-form' ) }</strong>
 				<div className="wpef-add-buttons">
 					{ FIELD_TYPES.map( ( t ) => (
-						<Button key={ t.type } variant="secondary" size="small" icon={ <FaPlus aria-hidden="true" /> } onClick={ () => onAdd( t.type ) }>
+						<Button key={ t.type } variant="secondary" size="small" icon={ <FaPlus aria-hidden="true" /> } iconSize={ 14 } onClick={ () => onAdd( t.type ) }>
 							{ t.label }
 						</Button>
 					) ) }
