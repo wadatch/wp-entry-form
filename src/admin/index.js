@@ -15,6 +15,7 @@ import { __ } from '@wordpress/i18n';
 import { FaGear, FaGripVertical, FaChevronLeft, FaChevronRight, FaTrashCan, FaPlus } from 'react-icons/fa6';
 import {
 	Button,
+	Modal,
 	TextControl,
 	TextareaControl,
 	SelectControl,
@@ -376,7 +377,7 @@ function EditableField( { field, index, total, onChange, onRemove, onMove, onRes
 			onDrop={ ( e ) => dragHandlers.onDrop( e, index ) }
 		>
 			<div className="wpef-ef-toolbar">
-				<span className="wpef-drag-handle" draggable onDragStart={ ( e ) => dragHandlers.onDragStart( e, index ) } title={ __( 'ドラッグで移動', 'wp-entry-form' ) }><FaGripVertical aria-hidden="true" /></span>
+				<span className="wpef-drag-handle" draggable onDragStart={ ( e ) => dragHandlers.onDragStart( e, index ) } title={ __( 'ドラッグで移動', 'wp-entry-form' ) }><FaGripVertical aria-hidden="true" draggable={ false } /></span>
 				<span className="wpef-ef-type">{ meta.label || field.type }</span>
 				<span className="wpef-ef-spacer" />
 				<Button size="small" variant="tertiary" disabled={ index === 0 } label={ __( '前へ', 'wp-entry-form' ) } onClick={ () => onMove( index, -1 ) }><FaChevronLeft aria-hidden="true" /></Button>
@@ -388,9 +389,18 @@ function EditableField( { field, index, total, onChange, onRemove, onMove, onRes
 			<div className="wpef-ef-body">{ body }</div>
 
 			{ open && (
-				<div className="wpef-ef-details">
-					<FieldDetails field={ field } onChange={ ( next ) => onChange( index, next ) } />
-				</div>
+				<Modal
+					title={ ( meta.label || field.type ) + __( ' の詳細設定', 'wp-entry-form' ) }
+					onRequestClose={ () => setOpen( false ) }
+					className="wpef-field-modal"
+				>
+					<div className="wpef-modal-body">
+						<FieldDetails field={ field } onChange={ ( next ) => onChange( index, next ) } />
+						<div className="wpef-modal-actions">
+							<Button variant="primary" onClick={ () => setOpen( false ) }>{ __( '閉じる', 'wp-entry-form' ) }</Button>
+						</div>
+					</div>
+				</Modal>
 			) }
 
 			<span className="wpef-resize-handle" title={ __( 'ドラッグで幅を変更', 'wp-entry-form' ) } onPointerDown={ ( e ) => onResizeStart( e, index, cols ) } />
