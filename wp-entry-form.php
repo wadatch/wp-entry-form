@@ -9,7 +9,8 @@
  * Author:            wadatch
  * Text Domain:       wp-entry-form
  * Domain Path:       /languages
- * License:           GPL-2.0-or-later
+ * License:           MIT
+ * License URI:       https://opensource.org/licenses/MIT
  *
  * @package WP_Entry_Form
  *

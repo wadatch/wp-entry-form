@@ -49,4 +49,4 @@ bash bin/build.sh
 
 ## ライセンス
 
-GPL-2.0-or-later
+[MIT License](LICENSE) © 2026 WADA Hiroki
