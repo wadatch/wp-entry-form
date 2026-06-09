@@ -43,6 +43,20 @@ class WPEF_Submissions_Table extends WP_List_Table {
 	private $search = '';
 
 	/**
+	 * 単一フォーム選択時の入力項目定義（key => 正規化済みフィールド）。
+	 *
+	 * @var array
+	 */
+	private $field_defs = array();
+
+	/**
+	 * 入力項目の表示順（key の配列）。
+	 *
+	 * @var string[]
+	 */
+	private $field_order = array();
+
+	/**
 	 * コンストラクタ。
 	 */
 	public function __construct() {
@@ -72,15 +86,24 @@ class WPEF_Submissions_Table extends WP_List_Table {
 	/**
 	 * カラム定義。
 	 *
+	 * 単一フォーム選択時は各入力項目を列に展開する（表形式）。それ以外は要約列。
+	 *
 	 * @return array
 	 */
 	public function get_columns() {
-		return array(
-			'cb'        => '<input type="checkbox" />',
-			'summary'   => __( '内容', 'wp-entry-form' ),
-			'status'    => __( 'ステータス', 'wp-entry-form' ),
-			'submitted' => __( '送信日時', 'wp-entry-form' ),
-		);
+		$columns = array( 'cb' => '<input type="checkbox" />' );
+
+		if ( ! empty( $this->field_defs ) ) {
+			foreach ( $this->field_defs as $key => $field ) {
+				$columns[ 'f_' . $key ] = '' !== $field['label'] ? $field['label'] : $key;
+			}
+		} else {
+			$columns['summary'] = __( '内容', 'wp-entry-form' );
+		}
+
+		$columns['status']    = __( 'ステータス', 'wp-entry-form' );
+		$columns['submitted'] = __( '送信日時', 'wp-entry-form' );
+		return $columns;
 	}
 
 	/**
@@ -183,6 +206,22 @@ class WPEF_Submissions_Table extends WP_List_Table {
 		$summary = $this->summarize( $item );
 		$out     = '<strong><a href="' . esc_url( $view_url ) . '">' . esc_html( $summary ) . '</a></strong>';
 
+		return $out . $this->row_actions( $this->build_row_actions( $item ) );
+	}
+
+	/**
+	 * 行操作リンクの配列を組み立てる。
+	 *
+	 * @param array $item 行。
+	 * @return array
+	 */
+	private function build_row_actions( $item ) {
+		$view_url = WPEF_Submissions::page_url(
+			array(
+				'action'        => 'view',
+				'submission_id' => (int) $item['id'],
+			)
+		);
 		$actions = array(
 			'view' => '<a href="' . esc_url( $view_url ) . '">' . esc_html__( '詳細', 'wp-entry-form' ) . '</a>',
 		);
@@ -192,8 +231,40 @@ class WPEF_Submissions_Table extends WP_List_Table {
 		} else {
 			$actions['trash'] = '<a href="' . esc_url( $this->row_action_url( 'trash', (int) $item['id'] ) ) . '">' . esc_html__( 'ゴミ箱へ', 'wp-entry-form' ) . '</a>';
 		}
+		return $actions;
+	}
 
-		return $out . $this->row_actions( $actions );
+	/**
+	 * 入力項目を展開した列（f_{key}）の値。先頭列には詳細リンクと行操作を付ける。
+	 *
+	 * @param array  $item        行。
+	 * @param string $column_name カラム名。
+	 * @return string
+	 */
+	public function column_default( $item, $column_name ) {
+		if ( 0 !== strpos( $column_name, 'f_' ) ) {
+			return '';
+		}
+		$key   = substr( $column_name, 2 );
+		$field = isset( $this->field_defs[ $key ] ) ? $this->field_defs[ $key ] : array( 'type' => 'text' );
+		$data  = isset( $item['data'] ) && is_array( $item['data'] ) ? $item['data'] : array();
+		$text  = isset( $data[ $key ] ) ? WPEF_Fields::value_to_text( $field, $data[ $key ] ) : '';
+		$text  = mb_strimwidth( (string) $text, 0, 60, '…' );
+
+		// 先頭の項目列に詳細リンクと行操作を寄せる。
+		if ( ! empty( $this->field_order ) && $key === $this->field_order[0] ) {
+			$view_url = WPEF_Submissions::page_url(
+				array(
+					'action'        => 'view',
+					'submission_id' => (int) $item['id'],
+				)
+			);
+			/* translators: %d: 送信 ID */
+			$display = '' !== $text ? $text : sprintf( __( '送信 #%d', 'wp-entry-form' ), (int) $item['id'] );
+			return '<strong><a href="' . esc_url( $view_url ) . '">' . esc_html( $display ) . '</a></strong>' . $this->row_actions( $this->build_row_actions( $item ) );
+		}
+
+		return esc_html( $text );
 	}
 
 	/**
@@ -284,6 +355,22 @@ class WPEF_Submissions_Table extends WP_List_Table {
 		$order         = isset( $_GET['order'] ) ? sanitize_key( wp_unslash( $_GET['order'] ) ) : 'desc';
 		$paged         = $this->get_pagenum();
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+		// 単一フォーム選択時は、その入力項目を列に展開する。
+		$this->field_defs  = array();
+		$this->field_order = array();
+		if ( $this->form_id ) {
+			$form = WPEF_DB::get_form( $this->form_id );
+			if ( $form && is_array( $form['fields'] ) ) {
+				foreach ( $form['fields'] as $raw_field ) {
+					$field = WPEF_Fields::normalize_field( $raw_field );
+					if ( '' !== $field['key'] && WPEF_Fields::is_input_type( $field['type'] ) && 'file' !== $field['type'] ) {
+						$this->field_defs[ $field['key'] ] = $field;
+						$this->field_order[]               = $field['key'];
+					}
+				}
+			}
+		}
 
 		$per_page = 20;
 		$args     = array(
