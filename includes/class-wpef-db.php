@@ -214,6 +214,38 @@ class WPEF_DB {
 	}
 
 	/**
+	 * 全フォームのステータス別件数をまとめて返す（1クエリ）。
+	 *
+	 * @return array form_id => array( status => 件数 )。
+	 */
+	public static function status_counts_by_form() {
+		global $wpdb;
+		$table = WPEF_Install::submissions_table();
+		$rows  = $wpdb->get_results( "SELECT form_id, status, COUNT(*) AS c FROM {$table} GROUP BY form_id, status", ARRAY_A );
+		$map   = array();
+		foreach ( (array) $rows as $row ) {
+			$map[ (int) $row['form_id'] ][ $row['status'] ] = (int) $row['c'];
+		}
+		return $map;
+	}
+
+	/**
+	 * 全フォームの最終送信日時をまとめて返す（trash 除外、1クエリ）。
+	 *
+	 * @return array form_id => 最終送信日時(UTC)。
+	 */
+	public static function last_submitted_by_form() {
+		global $wpdb;
+		$table = WPEF_Install::submissions_table();
+		$rows  = $wpdb->get_results( "SELECT form_id, MAX(created_at) AS last FROM {$table} WHERE status <> 'trash' GROUP BY form_id", ARRAY_A );
+		$map   = array();
+		foreach ( (array) $rows as $row ) {
+			$map[ (int) $row['form_id'] ] = $row['last'];
+		}
+		return $map;
+	}
+
+	/**
 	 * フォームのステータス別件数を返す（all は trash 除外）。
 	 *
 	 * @param int $form_id フォーム ID（0 で全フォーム）。

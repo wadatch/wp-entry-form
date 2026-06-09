@@ -23,6 +23,11 @@ class WPEF_Submissions {
 	const PAGE = 'wpef-submissions';
 
 	/**
+	 * 入力状況（フォーム別ダッシュボード）のページスラッグ。
+	 */
+	const OVERVIEW_PAGE = 'wpef-overview';
+
+	/**
 	 * フック登録。
 	 */
 	public static function init() {
@@ -34,14 +39,36 @@ class WPEF_Submissions {
 	 * 送信一覧のサブメニューを登録する。
 	 */
 	public static function register_menu() {
+		$cap = WPEF_Admin::capability();
+
+		add_submenu_page(
+			WPEF_Admin::PAGE,
+			__( '入力状況', 'wp-entry-form' ),
+			__( '入力状況', 'wp-entry-form' ),
+			$cap,
+			self::OVERVIEW_PAGE,
+			array( __CLASS__, 'render_overview' )
+		);
+
 		add_submenu_page(
 			WPEF_Admin::PAGE,
 			__( '送信データ', 'wp-entry-form' ),
 			__( '送信データ', 'wp-entry-form' ),
-			WPEF_Admin::capability(),
+			$cap,
 			self::PAGE,
 			array( __CLASS__, 'route' )
 		);
+	}
+
+	/**
+	 * 入力状況ページ URL。
+	 *
+	 * @param array $args クエリ引数。
+	 * @return string
+	 */
+	public static function overview_url( $args = array() ) {
+		$args = wp_parse_args( $args, array( 'page' => self::OVERVIEW_PAGE ) );
+		return add_query_arg( $args, admin_url( 'admin.php' ) );
 	}
 
 	/**
@@ -184,20 +211,7 @@ class WPEF_Submissions {
 		echo '<h1 class="wp-heading-inline">' . esc_html__( '送信データ', 'wp-entry-form' ) . '</h1>';
 
 		// CSV エクスポート（現在の絞り込みを引き継ぐ）。
-		$csv_url = wp_nonce_url(
-			add_query_arg(
-				array_filter(
-					array(
-						'action'      => 'wpef_export_csv',
-						'form_id'     => $form_id ? $form_id : null,
-						'wpef_status' => '' !== $status ? $status : null,
-					)
-				),
-				admin_url( 'admin-post.php' )
-			),
-			'wpef_export_csv'
-		);
-		echo ' <a href="' . esc_url( $csv_url ) . '" class="page-title-action">' . esc_html__( 'CSV エクスポート', 'wp-entry-form' ) . '</a>';
+		echo ' <a href="' . esc_url( self::csv_url( $form_id, $status ) ) . '" class="page-title-action">' . esc_html__( 'CSV エクスポート', 'wp-entry-form' ) . '</a>';
 		echo '<hr class="wp-header-end" />';
 
 		self::render_notice( $notice );
@@ -269,6 +283,95 @@ class WPEF_Submissions {
 		echo '<a href="' . esc_url( wp_nonce_url( self::page_url( array( 'wpef_action' => 'trash', 'submission' => $id ) ), 'wpef_sub_trash_' . $id ) ) . '" class="button">' . esc_html__( 'ゴミ箱へ', 'wp-entry-form' ) . '</a> ';
 		echo '<a href="' . esc_url( wp_nonce_url( self::page_url( array( 'wpef_action' => 'delete', 'submission' => $id ) ), 'wpef_sub_delete_' . $id ) ) . '" class="button" style="color:#b32d2e;" onclick="return confirm(\'' . esc_js( __( '完全に削除しますか？', 'wp-entry-form' ) ) . '\');">' . esc_html__( '完全に削除', 'wp-entry-form' ) . '</a>';
 		echo '</p>';
+		echo '</div>';
+	}
+
+	/**
+	 * CSV エクスポート URL（nonce 付き）。
+	 *
+	 * @param int    $form_id フォーム ID（0 で全フォーム）。
+	 * @param string $status  ステータス絞り込み。
+	 * @return string
+	 */
+	private static function csv_url( $form_id = 0, $status = '' ) {
+		$url = add_query_arg(
+			array_filter(
+				array(
+					'action'      => 'wpef_export_csv',
+					'form_id'     => $form_id ? $form_id : null,
+					'wpef_status' => '' !== $status ? $status : null,
+				)
+			),
+			admin_url( 'admin-post.php' )
+		);
+		return wp_nonce_url( $url, 'wpef_export_csv' );
+	}
+
+	/**
+	 * 入力状況（フォーム別ダッシュボード）画面。
+	 */
+	public static function render_overview() {
+		if ( ! current_user_can( WPEF_Admin::capability() ) ) {
+			wp_die( esc_html__( '権限がありません。', 'wp-entry-form' ) );
+		}
+
+		$forms  = WPEF_DB::get_forms();
+		$counts = WPEF_DB::status_counts_by_form();
+		$last   = WPEF_DB::last_submitted_by_form();
+
+		echo '<div class="wrap">';
+		echo '<h1 class="wp-heading-inline">' . esc_html__( '入力状況', 'wp-entry-form' ) . '</h1>';
+		echo ' <a href="' . esc_url( self::csv_url() ) . '" class="page-title-action">' . esc_html__( '全フォームを CSV エクスポート', 'wp-entry-form' ) . '</a>';
+		echo '<hr class="wp-header-end" />';
+
+		echo '<table class="wp-list-table widefat fixed striped">';
+		echo '<thead><tr>';
+		echo '<th>' . esc_html__( 'フォーム', 'wp-entry-form' ) . '</th>';
+		echo '<th>' . esc_html__( '状態', 'wp-entry-form' ) . '</th>';
+		echo '<th>' . esc_html__( '総数', 'wp-entry-form' ) . '</th>';
+		echo '<th>' . esc_html__( '未読', 'wp-entry-form' ) . '</th>';
+		echo '<th>' . esc_html__( '既読', 'wp-entry-form' ) . '</th>';
+		echo '<th>' . esc_html__( 'スパム', 'wp-entry-form' ) . '</th>';
+		echo '<th>' . esc_html__( 'ゴミ箱', 'wp-entry-form' ) . '</th>';
+		echo '<th>' . esc_html__( '最終送信', 'wp-entry-form' ) . '</th>';
+		echo '<th>' . esc_html__( '操作', 'wp-entry-form' ) . '</th>';
+		echo '</tr></thead><tbody>';
+
+		if ( empty( $forms ) ) {
+			echo '<tr><td colspan="9">' . esc_html__( 'フォームがありません。', 'wp-entry-form' ) . '</td></tr>';
+		} else {
+			foreach ( $forms as $form ) {
+				$fid    = (int) $form['id'];
+				$c      = isset( $counts[ $fid ] ) ? $counts[ $fid ] : array();
+				$unread = isset( $c['unread'] ) ? (int) $c['unread'] : 0;
+				$read   = isset( $c['read'] ) ? (int) $c['read'] : 0;
+				$spam   = isset( $c['spam'] ) ? (int) $c['spam'] : 0;
+				$trash  = isset( $c['trash'] ) ? (int) $c['trash'] : 0;
+				$total  = $unread + $read + $spam;
+
+				$list_url = self::page_url( array( 'form_id' => $fid ) );
+				$edit_url = WPEF_Admin::page_url( array( 'action' => 'edit', 'form_id' => $fid ) );
+
+				$last_ts = isset( $last[ $fid ] ) ? strtotime( $last[ $fid ] . ' UTC' ) : false;
+
+				echo '<tr>';
+				echo '<td><a href="' . esc_url( $list_url ) . '"><strong>' . esc_html( $form['title'] ) . '</strong></a><br /><span class="description"><a href="' . esc_url( $edit_url ) . '">' . esc_html__( '編集', 'wp-entry-form' ) . '</a></span></td>';
+				echo '<td>' . esc_html( $form['status'] ) . '</td>';
+				echo '<td><a href="' . esc_url( $list_url ) . '">' . $total . '</a></td>';
+				echo '<td>' . ( $unread ? '<a href="' . esc_url( self::page_url( array( 'form_id' => $fid, 'wpef_status' => 'unread' ) ) ) . '"><strong>' . $unread . '</strong></a>' : '0' ) . '</td>';
+				echo '<td>' . $read . '</td>';
+				echo '<td>' . $spam . '</td>';
+				echo '<td>' . $trash . '</td>';
+				echo '<td>' . ( $last_ts ? esc_html( wp_date( 'Y-m-d H:i', $last_ts ) ) : '&mdash;' ) . '</td>';
+				echo '<td>';
+				echo '<a href="' . esc_url( $list_url ) . '">' . esc_html__( '送信を見る', 'wp-entry-form' ) . '</a> | ';
+				echo '<a href="' . esc_url( self::csv_url( $fid ) ) . '">' . esc_html__( 'CSV', 'wp-entry-form' ) . '</a>';
+				echo '</td>';
+				echo '</tr>';
+			}
+		}
+
+		echo '</tbody></table>';
 		echo '</div>';
 	}
 
