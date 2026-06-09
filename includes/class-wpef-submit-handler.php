@@ -96,7 +96,7 @@ class WPEF_Submit_Handler {
 			array(
 				'form_id'    => $form_id,
 				'data'       => $values,
-				'status'     => 'unread',
+				'status'     => 'received',
 				'ip_address' => self::client_ip(),
 				'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
 				'referer'    => $return,

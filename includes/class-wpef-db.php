@@ -246,25 +246,6 @@ class WPEF_DB {
 	}
 
 	/**
-	 * フォームのステータス別件数を返す（all は trash 除外）。
-	 *
-	 * @param int $form_id フォーム ID（0 で全フォーム）。
-	 * @return array status => 件数（all/unread/read/spam/trash）。
-	 */
-	public static function count_by_status( $form_id = 0 ) {
-		$out = array();
-		foreach ( array( 'all', 'unread', 'read', 'spam', 'trash' ) as $status ) {
-			$out[ $status ] = self::count_submissions(
-				array(
-					'form_id' => $form_id,
-					'status'  => 'all' === $status ? '' : $status,
-				)
-			);
-		}
-		return $out;
-	}
-
-	/**
 	 * 送信一覧用の WHERE 句とプレースホルダ値を構築する。
 	 *
 	 * status 未指定（''）は trash を除外した「すべて」。
@@ -326,7 +307,7 @@ class WPEF_DB {
 				'form_id'    => isset( $data['form_id'] ) ? absint( $data['form_id'] ) : 0,
 				// 日本語をエスケープせず保存し、キーワード検索（LIKE）で一致できるようにする。
 				'data'       => wp_json_encode( isset( $data['data'] ) ? $data['data'] : array(), JSON_UNESCAPED_UNICODE ),
-				'status'     => isset( $data['status'] ) ? (string) $data['status'] : 'unread',
+				'status'     => isset( $data['status'] ) ? (string) $data['status'] : 'received',
 				'ip_address' => isset( $data['ip_address'] ) ? (string) $data['ip_address'] : '',
 				'user_agent' => isset( $data['user_agent'] ) ? (string) $data['user_agent'] : '',
 				'referer'    => isset( $data['referer'] ) ? (string) $data['referer'] : '',

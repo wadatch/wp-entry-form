@@ -70,17 +70,19 @@ class WPEF_Submissions_Table extends WP_List_Table {
 	}
 
 	/**
-	 * ステータスのラベル。
+	 * ステータスの表示ラベル（spam / trash 以外は「受信」）。
 	 *
-	 * @return array
+	 * @param string $status ステータス。
+	 * @return string
 	 */
-	public static function status_labels() {
-		return array(
-			'unread' => __( '未読', 'wp-entry-form' ),
-			'read'   => __( '既読', 'wp-entry-form' ),
-			'spam'   => __( 'スパム', 'wp-entry-form' ),
-			'trash'  => __( 'ゴミ箱', 'wp-entry-form' ),
-		);
+	public static function status_label( $status ) {
+		if ( 'spam' === $status ) {
+			return __( 'スパム', 'wp-entry-form' );
+		}
+		if ( 'trash' === $status ) {
+			return __( 'ゴミ箱', 'wp-entry-form' );
+		}
+		return __( '受信', 'wp-entry-form' );
 	}
 
 	/**
@@ -124,11 +126,9 @@ class WPEF_Submissions_Table extends WP_List_Table {
 	 */
 	public function get_bulk_actions() {
 		return array(
-			'mark_read'   => __( '既読にする', 'wp-entry-form' ),
-			'mark_unread' => __( '未読にする', 'wp-entry-form' ),
-			'mark_spam'   => __( 'スパムにする', 'wp-entry-form' ),
-			'trash'       => __( 'ゴミ箱へ', 'wp-entry-form' ),
-			'delete'      => __( '完全に削除', 'wp-entry-form' ),
+			'mark_spam' => __( 'スパムにする', 'wp-entry-form' ),
+			'trash'     => __( 'ゴミ箱へ', 'wp-entry-form' ),
+			'delete'    => __( '完全に削除', 'wp-entry-form' ),
 		);
 	}
 
@@ -138,21 +138,25 @@ class WPEF_Submissions_Table extends WP_List_Table {
 	 * @return array
 	 */
 	protected function get_views() {
-		$counts = WPEF_DB::count_by_status( $this->form_id );
-		$labels = array( 'all' => __( 'すべて', 'wp-entry-form' ) ) + self::status_labels();
-		$views  = array();
-		foreach ( $labels as $key => $label ) {
+		$defs = array(
+			'all'   => array( '', __( 'すべて', 'wp-entry-form' ) ),
+			'spam'  => array( 'spam', __( 'スパム', 'wp-entry-form' ) ),
+			'trash' => array( 'trash', __( 'ゴミ箱', 'wp-entry-form' ) ),
+		);
+		$views = array();
+		foreach ( $defs as $key => $def ) {
+			list( $status, $label ) = $def;
+			$count   = WPEF_DB::count_submissions( array( 'form_id' => $this->form_id, 'status' => $status ) );
 			$url     = WPEF_Submissions::page_url(
 				array_filter(
 					array(
 						'form_id'     => $this->form_id ? $this->form_id : null,
-						'wpef_status' => 'all' === $key ? null : $key,
+						'wpef_status' => '' !== $status ? $status : null,
 					)
 				)
 			);
-			$current = ( ( '' === $this->status && 'all' === $key ) || $this->status === $key ) ? ' class="current"' : '';
-			$count   = isset( $counts[ $key ] ) ? (int) $counts[ $key ] : 0;
-			$views[ $key ] = '<a href="' . esc_url( $url ) . '"' . $current . '>' . esc_html( $label ) . ' <span class="count">(' . $count . ')</span></a>';
+			$current = ( ( '' === $this->status && 'all' === $key ) || $this->status === $status ) ? ' class="current"' : '';
+			$views[ $key ] = '<a href="' . esc_url( $url ) . '"' . $current . '>' . esc_html( $label ) . ' <span class="count">(' . (int) $count . ')</span></a>';
 		}
 		return $views;
 	}
@@ -274,9 +278,7 @@ class WPEF_Submissions_Table extends WP_List_Table {
 	 * @return string
 	 */
 	public function column_status( $item ) {
-		$labels = self::status_labels();
-		$status = isset( $item['status'] ) ? $item['status'] : '';
-		return esc_html( isset( $labels[ $status ] ) ? $labels[ $status ] : $status );
+		return esc_html( self::status_label( isset( $item['status'] ) ? $item['status'] : '' ) );
 	}
 
 	/**

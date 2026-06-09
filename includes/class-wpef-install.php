@@ -78,7 +78,7 @@ class WPEF_Install {
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			form_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			data LONGTEXT NULL,
-			status VARCHAR(20) NOT NULL DEFAULT 'unread',
+			status VARCHAR(20) NOT NULL DEFAULT 'received',
 			ip_address VARCHAR(100) NULL,
 			user_agent TEXT NULL,
 			referer TEXT NULL,

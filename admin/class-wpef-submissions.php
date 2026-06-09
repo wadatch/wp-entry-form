@@ -122,7 +122,7 @@ class WPEF_Submissions {
 		} elseif ( isset( $_REQUEST['action2'] ) && '-1' !== $_REQUEST['action2'] ) {
 			$bulk = sanitize_key( wp_unslash( $_REQUEST['action2'] ) );
 		}
-		$valid_bulk = array( 'mark_read', 'mark_unread', 'mark_spam', 'trash', 'delete', 'restore' );
+		$valid_bulk = array( 'mark_spam', 'trash', 'delete', 'restore' );
 		if ( $bulk && in_array( $bulk, $valid_bulk, true ) && ! empty( $_REQUEST['submission'] ) ) {
 			check_admin_referer( 'bulk-wpef_submissions' );
 			$ids = array_map( 'absint', (array) wp_unslash( $_REQUEST['submission'] ) );
@@ -148,16 +148,14 @@ class WPEF_Submissions {
 	/**
 	 * アクションを送信群に適用する。
 	 *
-	 * @param string $action mark_read/mark_unread/mark_spam/trash/restore/delete。
+	 * @param string $action mark_spam/trash/restore/delete。
 	 * @param int[]  $ids    対象 ID。
 	 */
 	private static function apply_action( $action, $ids ) {
 		$status_map = array(
-			'mark_read'   => 'read',
-			'mark_unread' => 'unread',
-			'mark_spam'   => 'spam',
-			'trash'       => 'trash',
-			'restore'     => 'unread',
+			'mark_spam' => 'spam',
+			'trash'     => 'trash',
+			'restore'   => 'received',
 		);
 		foreach ( $ids as $id ) {
 			if ( ! $id ) {
@@ -184,8 +182,6 @@ class WPEF_Submissions {
 	 */
 	private static function render_notice( $key ) {
 		$map = array(
-			'mark_read'   => __( '既読にしました。', 'wp-entry-form' ),
-			'mark_unread' => __( '未読にしました。', 'wp-entry-form' ),
 			'mark_spam'   => __( 'スパムにしました。', 'wp-entry-form' ),
 			'trash'       => __( 'ゴミ箱へ移動しました。', 'wp-entry-form' ),
 			'restore'     => __( '復元しました。', 'wp-entry-form' ),
@@ -244,12 +240,6 @@ class WPEF_Submissions {
 			return;
 		}
 
-		// 未読なら既読にする。
-		if ( 'unread' === $submission['status'] ) {
-			WPEF_DB::update_submission_status( $id, 'read' );
-			$submission['status'] = 'read';
-		}
-
 		$form   = WPEF_DB::get_form( (int) $submission['form_id'] );
 		$fields = $form && is_array( $form['fields'] ) ? $form['fields'] : array();
 		$data   = is_array( $submission['data'] ) ? $submission['data'] : array();
@@ -267,11 +257,10 @@ class WPEF_Submissions {
 		echo '</tbody></table>';
 
 		// メタ情報。
-		$labels = WPEF_Submissions_Table::status_labels();
-		$ts     = strtotime( $submission['created_at'] . ' UTC' );
+		$ts = strtotime( $submission['created_at'] . ' UTC' );
 		echo '<h2>' . esc_html__( 'メタ情報', 'wp-entry-form' ) . '</h2>';
 		echo '<table class="widefat striped" style="max-width:820px;"><tbody>';
-		echo '<tr><th style="width:30%;">' . esc_html__( 'ステータス', 'wp-entry-form' ) . '</th><td>' . esc_html( isset( $labels[ $submission['status'] ] ) ? $labels[ $submission['status'] ] : $submission['status'] ) . '</td></tr>';
+		echo '<tr><th style="width:30%;">' . esc_html__( 'ステータス', 'wp-entry-form' ) . '</th><td>' . esc_html( WPEF_Submissions_Table::status_label( $submission['status'] ) ) . '</td></tr>';
 		echo '<tr><th>' . esc_html__( '送信日時', 'wp-entry-form' ) . '</th><td>' . esc_html( $ts ? wp_date( 'Y-m-d H:i:s', $ts ) : $submission['created_at'] ) . '</td></tr>';
 		echo '<tr><th>' . esc_html__( 'IP アドレス', 'wp-entry-form' ) . '</th><td>' . esc_html( $submission['ip_address'] ) . '</td></tr>';
 		echo '<tr><th>' . esc_html__( 'ユーザーエージェント', 'wp-entry-form' ) . '</th><td>' . esc_html( $submission['user_agent'] ) . '</td></tr>';
@@ -328,9 +317,7 @@ class WPEF_Submissions {
 		echo '<thead><tr>';
 		echo '<th>' . esc_html__( 'フォーム', 'wp-entry-form' ) . '</th>';
 		echo '<th>' . esc_html__( '状態', 'wp-entry-form' ) . '</th>';
-		echo '<th>' . esc_html__( '総数', 'wp-entry-form' ) . '</th>';
-		echo '<th>' . esc_html__( '未読', 'wp-entry-form' ) . '</th>';
-		echo '<th>' . esc_html__( '既読', 'wp-entry-form' ) . '</th>';
+		echo '<th>' . esc_html__( '受信', 'wp-entry-form' ) . '</th>';
 		echo '<th>' . esc_html__( 'スパム', 'wp-entry-form' ) . '</th>';
 		echo '<th>' . esc_html__( 'ゴミ箱', 'wp-entry-form' ) . '</th>';
 		echo '<th>' . esc_html__( '最終送信', 'wp-entry-form' ) . '</th>';
@@ -338,16 +325,20 @@ class WPEF_Submissions {
 		echo '</tr></thead><tbody>';
 
 		if ( empty( $forms ) ) {
-			echo '<tr><td colspan="9">' . esc_html__( 'フォームがありません。', 'wp-entry-form' ) . '</td></tr>';
+			echo '<tr><td colspan="7">' . esc_html__( 'フォームがありません。', 'wp-entry-form' ) . '</td></tr>';
 		} else {
 			foreach ( $forms as $form ) {
-				$fid    = (int) $form['id'];
-				$c      = isset( $counts[ $fid ] ) ? $counts[ $fid ] : array();
-				$unread = isset( $c['unread'] ) ? (int) $c['unread'] : 0;
-				$read   = isset( $c['read'] ) ? (int) $c['read'] : 0;
-				$spam   = isset( $c['spam'] ) ? (int) $c['spam'] : 0;
-				$trash  = isset( $c['trash'] ) ? (int) $c['trash'] : 0;
-				$total  = $unread + $read + $spam;
+				$fid   = (int) $form['id'];
+				$c     = isset( $counts[ $fid ] ) ? $counts[ $fid ] : array();
+				$spam  = isset( $c['spam'] ) ? (int) $c['spam'] : 0;
+				$trash = isset( $c['trash'] ) ? (int) $c['trash'] : 0;
+				// 受信 = スパム・ゴミ箱以外のすべて（旧 unread/read を含む）。
+				$received = 0;
+				foreach ( $c as $status => $n ) {
+					if ( 'spam' !== $status && 'trash' !== $status ) {
+						$received += (int) $n;
+					}
+				}
 
 				$list_url = self::page_url( array( 'form_id' => $fid ) );
 				$edit_url = WPEF_Admin::page_url( array( 'action' => 'edit', 'form_id' => $fid ) );
@@ -357,10 +348,8 @@ class WPEF_Submissions {
 				echo '<tr>';
 				echo '<td><a href="' . esc_url( $list_url ) . '"><strong>' . esc_html( $form['title'] ) . '</strong></a><br /><span class="description"><a href="' . esc_url( $edit_url ) . '">' . esc_html__( '編集', 'wp-entry-form' ) . '</a></span></td>';
 				echo '<td>' . esc_html( $form['status'] ) . '</td>';
-				echo '<td><a href="' . esc_url( $list_url ) . '">' . $total . '</a></td>';
-				echo '<td>' . ( $unread ? '<a href="' . esc_url( self::page_url( array( 'form_id' => $fid, 'wpef_status' => 'unread' ) ) ) . '"><strong>' . $unread . '</strong></a>' : '0' ) . '</td>';
-				echo '<td>' . $read . '</td>';
-				echo '<td>' . $spam . '</td>';
+				echo '<td><a href="' . esc_url( $list_url ) . '"><strong>' . $received . '</strong></a></td>';
+				echo '<td>' . ( $spam ? '<a href="' . esc_url( self::page_url( array( 'form_id' => $fid, 'wpef_status' => 'spam' ) ) ) . '">' . $spam . '</a>' : '0' ) . '</td>';
 				echo '<td>' . $trash . '</td>';
 				echo '<td>' . ( $last_ts ? esc_html( wp_date( 'Y-m-d H:i', $last_ts ) ) : '&mdash;' ) . '</td>';
 				echo '<td>';
@@ -428,13 +417,12 @@ class WPEF_Submissions {
 		}
 		fputcsv( $out, $header );
 
-		$labels = WPEF_Submissions_Table::status_labels();
 		foreach ( $rows as $row ) {
 			$ts   = strtotime( $row['created_at'] . ' UTC' );
 			$line = array(
 				$row['id'],
 				$ts ? wp_date( 'Y-m-d H:i:s', $ts ) : $row['created_at'],
-				isset( $labels[ $row['status'] ] ) ? $labels[ $row['status'] ] : $row['status'],
+				WPEF_Submissions_Table::status_label( $row['status'] ),
 				$row['ip_address'],
 			);
 			$data = is_array( $row['data'] ) ? $row['data'] : array();
