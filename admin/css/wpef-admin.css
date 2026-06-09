@@ -189,6 +189,67 @@
 	margin: 0;
 }
 
+/* ---- プレビュータブ（全体表示・並べ替えのみ） ---- */
+.wpef-fullpreview-note {
+	margin: 0 0 16px;
+	padding: 10px 12px;
+	background: #f0f6fc;
+	border-left: 4px solid #2271b1;
+	color: #1d2327;
+}
+
+.wpef-fullpreview-form {
+	max-width: 640px;
+	padding: 24px;
+	background: #fff;
+	border: 1px solid #e0e0e0;
+	border-radius: 6px;
+}
+
+.wpef-prev-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 12px;
+	margin-bottom: 12px;
+	border: 1px dashed transparent;
+	border-radius: 6px;
+	cursor: grab;
+}
+
+.wpef-prev-row:hover {
+	border-color: #c3c4c7;
+	background: #fafafa;
+}
+
+.wpef-prev-handle {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	padding-top: 2px;
+}
+
+.wpef-prev-field {
+	flex: 1;
+	min-width: 0;
+}
+
+.wpef-prev-actions {
+	margin-top: 20px;
+}
+
+.wpef-prev-submit {
+	display: inline-block;
+	padding: 10px 22px;
+	border: 0;
+	border-radius: 4px;
+	background: #2271b1;
+	color: #fff;
+	font-size: 15px;
+	cursor: default;
+}
+
 /* ---- 設定タブのパネル ---- */
 .wpef-settings-panel {
 	max-width: 640px;

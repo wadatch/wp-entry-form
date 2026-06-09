@@ -362,6 +362,58 @@ function FieldCard( { field, index, total, onChange, onRemove, onMove, dragHandl
 }
 
 /* ------------------------------------------------------------------ */
+/* プレビュータブ（全体表示。並べ替えのみ可能）                        */
+/* ------------------------------------------------------------------ */
+function PreviewRow( { field, index, total, onMove, dragHandlers } ) {
+	return (
+		<div
+			className="wpef-prev-row"
+			draggable
+			onDragStart={ ( e ) => dragHandlers.onDragStart( e, index ) }
+			onDragOver={ dragHandlers.onDragOver }
+			onDrop={ ( e ) => dragHandlers.onDrop( e, index ) }
+		>
+			<div className="wpef-prev-handle">
+				<span className="wpef-drag-handle" title={ __( 'ドラッグで並べ替え', 'wp-entry-form' ) }>⠿</span>
+				<Button size="small" variant="tertiary" disabled={ index === 0 } label={ __( '上へ', 'wp-entry-form' ) } onClick={ () => onMove( index, -1 ) }>↑</Button>
+				<Button size="small" variant="tertiary" disabled={ index === total - 1 } label={ __( '下へ', 'wp-entry-form' ) } onClick={ () => onMove( index, 1 ) }>↓</Button>
+			</div>
+			<div className="wpef-prev-field">
+				<FieldPreview field={ field } />
+			</div>
+		</div>
+	);
+}
+
+function PreviewTab( { fields, settings, onMove, dragHandlers } ) {
+	const submitLabel = settings.messages.submit_button || __( '送信する', 'wp-entry-form' );
+	return (
+		<div className="wpef-fullpreview">
+			<p className="wpef-fullpreview-note">{ __( 'このタブでは項目の並べ替えだけができます。内容の編集は「入力項目」タブで行ってください。', 'wp-entry-form' ) }</p>
+			{ fields.length === 0 ? (
+				<Notice status="info" isDismissible={ false }>{ __( 'まだ入力項目がありません。', 'wp-entry-form' ) }</Notice>
+			) : (
+				<div className="wpef-fullpreview-form">
+					{ fields.map( ( field, i ) => (
+						<PreviewRow
+							key={ i }
+							field={ field }
+							index={ i }
+							total={ fields.length }
+							onMove={ onMove }
+							dragHandlers={ dragHandlers }
+						/>
+					) ) }
+					<div className="wpef-prev-actions">
+						<button type="button" className="wpef-prev-submit" disabled>{ submitLabel }</button>
+					</div>
+				</div>
+			) }
+		</div>
+	);
+}
+
+/* ------------------------------------------------------------------ */
 /* 設定タブ                                                            */
 /* ------------------------------------------------------------------ */
 function SettingsBasic( { settings, set } ) {
@@ -497,6 +549,7 @@ function Builder() {
 				className="wpef-tabs"
 				tabs={ [
 					{ name: 'fields', title: __( '入力項目', 'wp-entry-form' ) },
+					{ name: 'preview', title: __( 'プレビュー', 'wp-entry-form' ) },
 					{ name: 'basic', title: __( '基本設定', 'wp-entry-form' ) },
 					{ name: 'mail', title: __( 'メール', 'wp-entry-form' ) },
 					{ name: 'spam', title: __( 'スパム対策', 'wp-entry-form' ) },
@@ -535,6 +588,7 @@ function Builder() {
 								</Card>
 							</Fragment>
 						) }
+						{ tab.name === 'preview' && <PreviewTab fields={ fields } settings={ settings } onMove={ moveField } dragHandlers={ dragHandlers } /> }
 						{ tab.name === 'basic' && <SettingsBasic settings={ settings } set={ setSettingsPartial } /> }
 						{ tab.name === 'mail' && <SettingsMail settings={ settings } set={ setSettingsPartial } fieldKeys={ fieldKeys } /> }
 						{ tab.name === 'spam' && <SettingsSpam settings={ settings } set={ setSettingsPartial } /> }
