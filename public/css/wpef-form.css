@@ -19,8 +19,16 @@
 }
 
 .wpef-required {
-	color: #c00;
-	margin-left: 0.15em;
+	display: inline-block;
+	margin-left: 0.4em;
+	padding: 0.1em 0.45em;
+	font-size: 0.75em;
+	font-weight: 600;
+	line-height: 1.5;
+	color: #fff;
+	background: #d63638;
+	border-radius: 3px;
+	vertical-align: middle;
 }
 
 .wpef-input,

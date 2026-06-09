@@ -174,7 +174,7 @@ function PreviewControl( { field } ) {
 
 /* 右カラム: フィールドの「実際の表示」プレビュー（読み取り専用）。 */
 function FieldPreview( { field } ) {
-	const required = field.required ? <span className="wpef-req" title={ __( '必須', 'wp-entry-form' ) }>*</span> : null;
+	const required = field.required ? <span className="wpef-req">[{ __( '必須', 'wp-entry-form' ) }]</span> : null;
 
 	if ( field.type === 'heading' ) {
 		return <h3 className="wpef-pv-heading">{ field.label || __( '（見出し）', 'wp-entry-form' ) }</h3>;

@@ -150,7 +150,7 @@ class WPEF_Renderer {
 	 * @return string
 	 */
 	private static function render_label( $field, $id, $type ) {
-		$required = $field['required'] ? ' <span class="wpef-required" aria-hidden="true">*</span>' : '';
+		$required = $field['required'] ? ' ' . self::required_badge() : '';
 		// グループ系は <label for> ではなく見出しとして扱う（実際の関連付けは fieldset/legend）。
 		if ( in_array( $type, array( 'radio', 'checkbox' ), true ) ) {
 			return '<span class="wpef-label">' . esc_html( $field['label'] ) . $required . '</span>';
@@ -252,7 +252,7 @@ class WPEF_Renderer {
 	 */
 	private static function render_consent( $field, $id, $value, $describe ) {
 		$name     = 'wpef[' . $field['key'] . ']';
-		$required = $field['required'] ? ' <span class="wpef-required" aria-hidden="true">*</span>' : '';
+		$required = $field['required'] ? ' ' . self::required_badge() : '';
 		$attrs    = $field['required'] ? ' aria-required="true"' : '';
 		if ( ! empty( $describe ) ) {
 			$attrs .= ' aria-describedby="' . esc_attr( implode( ' ', $describe ) ) . '"';
@@ -300,6 +300,17 @@ class WPEF_Renderer {
 			);
 		}
 		return $out;
+	}
+
+	/**
+	 * 必須バッジ（[必須] / 翻訳で [required] 等）の HTML を返す。
+	 *
+	 * 視覚表示用。スクリーンリーダーには入力要素の aria-required で伝えるため aria-hidden。
+	 *
+	 * @return string
+	 */
+	private static function required_badge() {
+		return '<span class="wpef-required" aria-hidden="true">[' . esc_html__( '必須', 'wp-entry-form' ) . ']</span>';
 	}
 
 	/**
