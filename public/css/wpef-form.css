@@ -1,0 +1,120 @@
+/**
+ * WP Entry Form フロントスタイル。
+ * テーマと衝突しにくい控えめな既定スタイル。
+ */
+
+.wpef-form-wrap {
+	margin: 1.5em 0;
+}
+
+.wpef-field {
+	margin-bottom: 1.25em;
+}
+
+.wpef-label,
+.wpef-form .wpef-label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 0.35em;
+}
+
+.wpef-required {
+	color: #c00;
+	margin-left: 0.15em;
+}
+
+.wpef-input,
+.wpef-form textarea.wpef-input,
+.wpef-form select.wpef-input {
+	width: 100%;
+	max-width: 36em;
+	padding: 0.5em 0.6em;
+	border: 1px solid #8c8f94;
+	border-radius: 4px;
+	box-sizing: border-box;
+	font-size: 1em;
+	line-height: 1.4;
+}
+
+.wpef-form input[type="file"].wpef-input {
+	padding: 0.3em 0;
+	border: 0;
+}
+
+.wpef-options {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35em;
+}
+
+.wpef-option,
+.wpef-consent {
+	display: inline-flex;
+	align-items: flex-start;
+	gap: 0.4em;
+	font-weight: 400;
+}
+
+.wpef-consent {
+	display: flex;
+}
+
+.wpef-help {
+	display: block;
+	margin-top: 0.35em;
+	font-size: 0.875em;
+	color: #50575e;
+}
+
+.wpef-error {
+	display: block;
+	margin-top: 0.35em;
+	font-size: 0.875em;
+	color: #c00;
+}
+
+.wpef-has-error .wpef-input {
+	border-color: #c00;
+}
+
+.wpef-form-errors {
+	margin-bottom: 1.25em;
+	padding: 0.75em 1em;
+	border: 1px solid #c00;
+	border-radius: 4px;
+	color: #c00;
+	background: #fff5f5;
+}
+
+.wpef-heading {
+	margin: 1.25em 0 0.5em;
+}
+
+.wpef-paragraph {
+	margin: 0 0 1.25em;
+}
+
+.wpef-actions {
+	margin-top: 1.5em;
+}
+
+.wpef-submit {
+	display: inline-block;
+	padding: 0.6em 1.4em;
+	border: 0;
+	border-radius: 4px;
+	background: #2271b1;
+	color: #fff;
+	font-size: 1em;
+	cursor: pointer;
+}
+
+.wpef-submit:hover,
+.wpef-submit:focus {
+	background: #135e96;
+}
+
+.wpef-submit[disabled] {
+	opacity: 0.6;
+	cursor: default;
+}
