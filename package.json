@@ -3,7 +3,7 @@
 	"version": "0.0.0",
 	"private": true,
 	"description": "ボランティア応募などに使える汎用入力フォームの WordPress プラグイン",
-	"license": "GPL-2.0-or-later",
+	"license": "MIT",
 	"scripts": {
 		"env:start": "wp-env start",
 		"env:stop": "wp-env stop",
