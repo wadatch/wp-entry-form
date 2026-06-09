@@ -42,7 +42,8 @@ class WPEF_Submit_Handler {
 		$form = $form_id ? WPEF_DB::get_form( $form_id ) : null;
 		$return = isset( $_POST['wpef_return'] ) ? esc_url_raw( wp_unslash( $_POST['wpef_return'] ) ) : home_url( '/' );
 
-		if ( ! $form || ( isset( $form['status'] ) && 'active' !== $form['status'] ) ) {
+		// 公開・受付中のフォームのみ受け付ける（締めきり/下書き/期間外は弾く）。
+		if ( ! $form || ! WPEF_Form_State::is_open( $form ) ) {
 			wp_safe_redirect( $return );
 			exit;
 		}
@@ -96,7 +97,7 @@ class WPEF_Submit_Handler {
 			array(
 				'form_id'    => $form_id,
 				'data'       => $values,
-				'status'     => 'unread',
+				'status'     => 'received',
 				'ip_address' => self::client_ip(),
 				'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
 				'referer'    => $return,

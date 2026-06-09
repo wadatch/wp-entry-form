@@ -66,6 +66,12 @@ function defaultSettings( raw ) {
 			submit_button: messages.submit_button || __( '送信する', 'wp-entry-form' ),
 			confirm_button: messages.confirm_button || __( '入力内容を確認', 'wp-entry-form' ),
 			back_button: messages.back_button || __( '戻る', 'wp-entry-form' ),
+			before_open: messages.before_open || '',
+			closed: messages.closed || '',
+		},
+		schedule: {
+			open: ( s.schedule && s.schedule.open ) || '',
+			close: ( s.schedule && s.schedule.close ) || '',
 		},
 		redirect_url: s.redirect_url || '',
 		admin_notification: {
@@ -523,6 +529,55 @@ function BuilderCanvas( { fields, settings, onChange, onRemove, onResize, onAdd,
 }
 
 /* ------------------------------------------------------------------ */
+/* 公開状態パネル（フォーム名の下に大きめに表示）                       */
+/* ------------------------------------------------------------------ */
+const PUBLISH_STATES = [
+	{ value: 'published', label: __( '公開', 'wp-entry-form' ) },
+	{ value: 'draft', label: __( '下書き', 'wp-entry-form' ) },
+	{ value: 'closed', label: __( '締めきり', 'wp-entry-form' ) },
+];
+
+function PublishPanel( { status, setStatus, settings, set } ) {
+	const m = settings.messages;
+	const sched = settings.schedule || { open: '', close: '' };
+	const setMsg = ( p ) => set( { messages: { ...m, ...p } } );
+	const setSched = ( p ) => set( { schedule: { ...sched, ...p } } );
+
+	return (
+		<div className="wpef-publish">
+			<span className="wpef-publish-title">{ __( '公開状態', 'wp-entry-form' ) }</span>
+			<div className="wpef-publish-states" role="group" aria-label={ __( '公開状態', 'wp-entry-form' ) }>
+				{ PUBLISH_STATES.map( ( s ) => (
+					<button
+						type="button"
+						key={ s.value }
+						className={ 'wpef-pubbtn wpef-pubbtn-' + s.value + ( status === s.value ? ' is-active' : '' ) }
+						aria-pressed={ status === s.value }
+						onClick={ () => setStatus( s.value ) }
+					>
+						{ s.label }
+					</button>
+				) ) }
+			</div>
+
+			{ status === 'published' && (
+				<div className="wpef-publish-schedule">
+					<Flex className="wpef-row" gap={ 4 }>
+						<FlexBlock><TextControl type="datetime-local" label={ __( '自動公開（この日時まで受付前）', 'wp-entry-form' ) } value={ sched.open } onChange={ ( v ) => setSched( { open: v } ) } __nextHasNoMarginBottom /></FlexBlock>
+						<FlexBlock><TextControl type="datetime-local" label={ __( '自動締めきり（この日時以降は停止）', 'wp-entry-form' ) } value={ sched.close } onChange={ ( v ) => setSched( { close: v } ) } __nextHasNoMarginBottom /></FlexBlock>
+					</Flex>
+					<details className="wpef-advanced">
+						<summary>{ __( '受付前・締めきり後のメッセージ', 'wp-entry-form' ) }</summary>
+						<TextControl label={ __( '受付開始前のメッセージ', 'wp-entry-form' ) } value={ m.before_open } onChange={ ( v ) => setMsg( { before_open: v } ) } __nextHasNoMarginBottom />
+						<TextControl label={ __( '締めきり後のメッセージ', 'wp-entry-form' ) } value={ m.closed } onChange={ ( v ) => setMsg( { closed: v } ) } __nextHasNoMarginBottom />
+					</details>
+				</div>
+			) }
+		</div>
+	);
+}
+
+/* ------------------------------------------------------------------ */
 /* フォーム全体の設定タブ                                              */
 /* ------------------------------------------------------------------ */
 function SettingsBasic( { settings, set } ) {
@@ -610,6 +665,7 @@ function Builder() {
 	const initialFields = ( Array.isArray( data.fields ) ? data.fields : [] ).map( ( f ) => ( { ...f, cols: fieldCols( f ) } ) );
 	const [ fields, setFields ] = useState( initialFields );
 	const [ settings, setSettings ] = useState( defaultSettings( data.settings ) );
+	const [ status, setStatus ] = useState( data.status || 'published' );
 	const gridRef = useRef( null );
 	const dragIndexRef = useRef( null );
 
@@ -659,6 +715,9 @@ function Builder() {
 		<div className="wpef-builder">
 			<input type="hidden" name="wpef_fields" value={ JSON.stringify( fields ) } />
 			<input type="hidden" name="wpef_settings" value={ JSON.stringify( settings ) } />
+			<input type="hidden" name="wpef_status" value={ status } />
+
+			<PublishPanel status={ status } setStatus={ setStatus } settings={ settings } set={ setSettingsPartial } />
 
 			<TabPanel
 				className="wpef-tabs"

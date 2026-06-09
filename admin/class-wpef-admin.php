@@ -145,6 +145,7 @@ class WPEF_Admin {
 			array(
 				'fields'     => $form && ! empty( $form['fields'] ) ? $form['fields'] : array(),
 				'settings'   => $form && ! empty( $form['settings'] ) ? $form['settings'] : new stdClass(),
+				'status'     => $form ? WPEF_Form_State::normalize_status( $form['status'] ) : 'published',
 				'fieldTypes' => self::field_types_for_js(),
 			)
 		);

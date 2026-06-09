@@ -84,13 +84,14 @@ class WPEF_DB {
 			WPEF_Install::forms_table(),
 			array(
 				'title'      => isset( $data['title'] ) ? (string) $data['title'] : '',
-				'status'     => isset( $data['status'] ) ? (string) $data['status'] : 'active',
+				'status'     => isset( $data['status'] ) ? (string) $data['status'] : 'published',
 				'fields'     => wp_json_encode( isset( $data['fields'] ) ? $data['fields'] : array() ),
 				'settings'   => wp_json_encode( isset( $data['settings'] ) ? $data['settings'] : array() ),
+				'updated_by' => get_current_user_id() ? get_current_user_id() : null,
 				'created_at' => $now,
 				'updated_at' => $now,
 			),
-			array( '%s', '%s', '%s', '%s', '%s', '%s' )
+			array( '%s', '%s', '%s', '%s', '%d', '%s', '%s' )
 		);
 		return $ok ? (int) $wpdb->insert_id : false;
 	}
@@ -105,8 +106,11 @@ class WPEF_DB {
 	public static function update_form( $id, $data ) {
 		global $wpdb;
 
-		$columns = array( 'updated_at' => self::now() );
-		$formats = array( '%s' );
+		$columns = array(
+			'updated_at' => self::now(),
+			'updated_by' => get_current_user_id() ? get_current_user_id() : null,
+		);
+		$formats = array( '%s', '%d' );
 
 		if ( isset( $data['title'] ) ) {
 			$columns['title'] = (string) $data['title'];
@@ -154,6 +158,130 @@ class WPEF_DB {
 	 * ------------------------------------------------------------------- */
 
 	/**
+	 * 条件に合う送信一覧を取得する。
+	 *
+	 * @param array $args form_id / status / search / orderby / order / number / offset。
+	 * @return array data デコード済みの行配列。
+	 */
+	public static function get_submissions( $args = array() ) {
+		global $wpdb;
+		$table = WPEF_Install::submissions_table();
+
+		$args = wp_parse_args(
+			$args,
+			array(
+				'form_id' => 0,
+				'status'  => '',
+				'search'  => '',
+				'orderby' => 'created_at',
+				'order'   => 'DESC',
+				'number'  => 20,
+				'offset'  => 0,
+			)
+		);
+
+		list( $where, $params ) = self::submissions_where( $args );
+
+		$allowed_orderby = array( 'id', 'created_at', 'status', 'form_id' );
+		$orderby         = in_array( $args['orderby'], $allowed_orderby, true ) ? $args['orderby'] : 'created_at';
+		$order           = 'ASC' === strtoupper( $args['order'] ) ? 'ASC' : 'DESC';
+
+		$number = max( 1, (int) $args['number'] );
+		$offset = max( 0, (int) $args['offset'] );
+
+		$sql      = "SELECT * FROM {$table} {$where} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d";
+		$params[] = $number;
+		$params[] = $offset;
+
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL
+		return array_map( array( __CLASS__, 'decode_submission' ), $rows ? $rows : array() );
+	}
+
+	/**
+	 * 条件に合う送信件数を返す。
+	 *
+	 * @param array $args form_id / status / search。
+	 * @return int
+	 */
+	public static function count_submissions( $args = array() ) {
+		global $wpdb;
+		$table = WPEF_Install::submissions_table();
+		$args  = wp_parse_args( $args, array( 'form_id' => 0, 'status' => '', 'search' => '' ) );
+
+		list( $where, $params ) = self::submissions_where( $args );
+
+		$sql = "SELECT COUNT(*) FROM {$table} {$where}";
+		if ( $params ) {
+			return (int) $wpdb->get_var( $wpdb->prepare( $sql, $params ) ); // phpcs:ignore WordPress.DB.PreparedSQL
+		}
+		return (int) $wpdb->get_var( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL
+	}
+
+	/**
+	 * 全フォームのステータス別件数をまとめて返す（1クエリ）。
+	 *
+	 * @return array form_id => array( status => 件数 )。
+	 */
+	public static function status_counts_by_form() {
+		global $wpdb;
+		$table = WPEF_Install::submissions_table();
+		$rows  = $wpdb->get_results( "SELECT form_id, status, COUNT(*) AS c FROM {$table} GROUP BY form_id, status", ARRAY_A );
+		$map   = array();
+		foreach ( (array) $rows as $row ) {
+			$map[ (int) $row['form_id'] ][ $row['status'] ] = (int) $row['c'];
+		}
+		return $map;
+	}
+
+	/**
+	 * 全フォームの最終送信日時をまとめて返す（trash 除外、1クエリ）。
+	 *
+	 * @return array form_id => 最終送信日時(UTC)。
+	 */
+	public static function last_submitted_by_form() {
+		global $wpdb;
+		$table = WPEF_Install::submissions_table();
+		$rows  = $wpdb->get_results( "SELECT form_id, MAX(created_at) AS last FROM {$table} WHERE status <> 'trash' GROUP BY form_id", ARRAY_A );
+		$map   = array();
+		foreach ( (array) $rows as $row ) {
+			$map[ (int) $row['form_id'] ] = $row['last'];
+		}
+		return $map;
+	}
+
+	/**
+	 * 送信一覧用の WHERE 句とプレースホルダ値を構築する。
+	 *
+	 * status 未指定（''）は trash を除外した「すべて」。
+	 *
+	 * @param array $args form_id / status / search。
+	 * @return array array( $where_sql, $params )。
+	 */
+	private static function submissions_where( $args ) {
+		$clauses = array();
+		$params  = array();
+
+		if ( ! empty( $args['form_id'] ) ) {
+			$clauses[] = 'form_id = %d';
+			$params[]  = absint( $args['form_id'] );
+		}
+		if ( '' !== $args['status'] ) {
+			$clauses[] = 'status = %s';
+			$params[]  = (string) $args['status'];
+		} else {
+			$clauses[] = "status <> 'trash'";
+		}
+		if ( '' !== $args['search'] ) {
+			global $wpdb;
+			$clauses[] = 'data LIKE %s';
+			$params[]  = '%' . $wpdb->esc_like( (string) $args['search'] ) . '%';
+		}
+
+		$where = $clauses ? 'WHERE ' . implode( ' AND ', $clauses ) : '';
+		return array( $where, $params );
+	}
+
+	/**
 	 * 送信を1件取得する。
 	 *
 	 * @param int $id 送信 ID。
@@ -181,8 +309,9 @@ class WPEF_DB {
 			WPEF_Install::submissions_table(),
 			array(
 				'form_id'    => isset( $data['form_id'] ) ? absint( $data['form_id'] ) : 0,
-				'data'       => wp_json_encode( isset( $data['data'] ) ? $data['data'] : array() ),
-				'status'     => isset( $data['status'] ) ? (string) $data['status'] : 'unread',
+				// 日本語をエスケープせず保存し、キーワード検索（LIKE）で一致できるようにする。
+				'data'       => wp_json_encode( isset( $data['data'] ) ? $data['data'] : array(), JSON_UNESCAPED_UNICODE ),
+				'status'     => isset( $data['status'] ) ? (string) $data['status'] : 'received',
 				'ip_address' => isset( $data['ip_address'] ) ? (string) $data['ip_address'] : '',
 				'user_agent' => isset( $data['user_agent'] ) ? (string) $data['user_agent'] : '',
 				'referer'    => isset( $data['referer'] ) ? (string) $data['referer'] : '',

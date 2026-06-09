@@ -20,7 +20,7 @@ class WPEF_Install {
 	/**
 	 * スキーマ版。テーブル定義を変更したら +1 する。
 	 */
-	const DB_VERSION = 1;
+	const DB_VERSION = 2;
 
 	/**
 	 * スキーマ版を保存するオプション名。
@@ -69,6 +69,7 @@ class WPEF_Install {
 			status VARCHAR(20) NOT NULL DEFAULT 'active',
 			fields LONGTEXT NULL,
 			settings LONGTEXT NULL,
+			updated_by BIGINT UNSIGNED NULL,
 			created_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
 			updated_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
 			PRIMARY KEY  (id)
@@ -78,7 +79,7 @@ class WPEF_Install {
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			form_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			data LONGTEXT NULL,
-			status VARCHAR(20) NOT NULL DEFAULT 'unread',
+			status VARCHAR(20) NOT NULL DEFAULT 'received',
 			ip_address VARCHAR(100) NULL,
 			user_agent TEXT NULL,
 			referer TEXT NULL,
