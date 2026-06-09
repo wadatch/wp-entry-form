@@ -58,6 +58,8 @@ $wpef_includes = array(
 	'includes/class-wpef-submit-handler.php',
 	'includes/class-wpef-mailer.php',
 	'includes/class-wpef-files.php',
+	'includes/class-wpef-spam.php',
+	'includes/class-wpef-block.php',
 	'includes/class-wpef-rest.php',
 );
 
@@ -116,6 +118,11 @@ function wpef_init() {
 	// REST（ブロックエディタ用フォーム一覧）。
 	if ( class_exists( 'WPEF_REST' ) ) {
 		WPEF_REST::init();
+	}
+
+	// Gutenberg ブロック。
+	if ( class_exists( 'WPEF_Block' ) ) {
+		WPEF_Block::init();
 	}
 
 	// 管理画面。

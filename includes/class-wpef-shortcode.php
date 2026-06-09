@@ -119,6 +119,7 @@ class WPEF_Shortcode {
 					'return' => $return,
 					'values' => is_array( $flow ) && isset( $flow['values'] ) ? $flow['values'] : array(),
 					'errors' => is_array( $flow ) && isset( $flow['errors'] ) ? $flow['errors'] : array(),
+					'notice' => is_array( $flow ) && isset( $flow['notice'] ) ? $flow['notice'] : '',
 				)
 			);
 		}

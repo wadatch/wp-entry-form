@@ -63,6 +63,14 @@ class WPEF_Submit_Handler {
 			self::redirect_with_state( $return, $form_id, array( 'state' => 'input', 'values' => $values ) );
 		}
 
+		// スパム（ハニーポット等）はボットに気づかせないため、保存せず静かに完了画面へ。
+		if ( class_exists( 'WPEF_Spam' ) && WPEF_Spam::is_spam( $form, $values ) ) {
+			if ( '' !== $file_token ) {
+				WPEF_Files::discard( $file_token );
+			}
+			self::redirect_with_state( $return, $form_id, array( 'state' => 'success' ) );
+		}
+
 		// 値の検証（ファイル以外）。
 		$errors = WPEF_Validator::validate( self::validatable_form( $form ), $values );
 
@@ -127,6 +135,20 @@ class WPEF_Submit_Handler {
 		$form_id  = (int) $form['id'];
 		$settings = is_array( $form['settings'] ) ? $form['settings'] : array();
 
+		// 送信レート制限（短時間の連投を抑止）。
+		if ( class_exists( 'WPEF_Spam' ) && ! WPEF_Spam::rate_ok( $form ) ) {
+			WPEF_Files::cleanup( $file_metas );
+			self::redirect_with_state(
+				$return,
+				$form_id,
+				array(
+					'state'  => 'input',
+					'values' => $values,
+					'notice' => __( '短時間に送信が集中しています。しばらく経ってから再度お試しください。', 'wp-entry-form' ),
+				)
+			);
+		}
+
 		/**
 		 * 保存前フック。
 		 *
@@ -150,6 +172,11 @@ class WPEF_Submit_Handler {
 		// 添付ファイルを送信に紐づける。
 		if ( $submission_id && ! empty( $file_metas ) ) {
 			WPEF_Files::attach_to_submission( $submission_id, $file_metas );
+		}
+
+		// レート制限のカウントを加算。
+		if ( class_exists( 'WPEF_Spam' ) ) {
+			WPEF_Spam::record( $form );
 		}
 
 		/**
