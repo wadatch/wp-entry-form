@@ -480,8 +480,7 @@ function EditableField( { field, index, onChange, onRemove, onResizeStart, dragH
 /* ------------------------------------------------------------------ */
 /* キャンバス（プレビュー＝編集面）                                    */
 /* ------------------------------------------------------------------ */
-function BuilderCanvas( { fields, settings, onChange, onRemove, onResize, onAdd, dragHandlers, gridRef } ) {
-	const submitLabel = settings.messages.submit_button || __( '送信する', 'wp-entry-form' );
+function BuilderCanvas( { fields, settings, onChange, onRemove, onResize, onAdd, onSubmitLabel, dragHandlers, gridRef } ) {
 
 	const onResizeStart = ( e, index, startCols ) => {
 		e.preventDefault();
@@ -528,7 +527,14 @@ function BuilderCanvas( { fields, settings, onChange, onRemove, onResize, onAdd,
 					/>
 				) ) }
 				<div className="wpef-prev-actions">
-					<button type="button" className="wpef-prev-submit" disabled>{ submitLabel }</button>
+					<span className="wpef-prev-submit">
+						<EditableText
+							value={ settings.messages.submit_button || '' }
+							onChange={ onSubmitLabel }
+							className="wpef-inline-submit"
+							placeholder={ __( '送信する', 'wp-entry-form' ) }
+						/>
+					</span>
 				</div>
 			</div>
 
@@ -703,6 +709,7 @@ function Builder() {
 								onRemove={ removeField }
 								onResize={ resizeField }
 								onAdd={ addField }
+								onSubmitLabel={ ( v ) => setSettings( ( prev ) => ( { ...prev, messages: { ...prev.messages, submit_button: v } } ) ) }
 								dragHandlers={ dragHandlers }
 								gridRef={ gridRef }
 							/>

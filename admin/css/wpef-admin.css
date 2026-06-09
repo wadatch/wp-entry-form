@@ -110,20 +110,22 @@
 	pointer-events: none;
 }
 
-/* ホバー時に右上角へ表示する操作（編集・削除） */
+/* ホバー時に右上へ表示する操作（編集・削除）。入力エリアに重ならないよう上辺の外側へ。 */
 .wpef-ef-actions {
 	position: absolute;
-	top: 6px;
-	right: 16px;
+	top: -16px;
+	right: 8px;
+	z-index: 3;
 	display: flex;
 	align-items: center;
 	gap: 2px;
 	padding: 2px 4px;
 	background: #fff;
-	border: 1px solid #e0e0e0;
+	border: 1px solid #c3c4c7;
 	border-radius: 6px;
-	box-shadow: 0 1px 2px rgba( 0, 0, 0, 0.06 );
+	box-shadow: 0 1px 3px rgba( 0, 0, 0, 0.12 );
 	opacity: 0;
+	pointer-events: none;
 	transition: opacity 0.1s;
 }
 
@@ -131,6 +133,7 @@
 .wpef-ef:focus-within .wpef-ef-actions,
 .wpef-ef.is-open .wpef-ef-actions {
 	opacity: 1;
+	pointer-events: auto;
 }
 
 .wpef-ef-type {
@@ -317,14 +320,46 @@ body.wpef-resizing * {
 }
 
 .wpef-prev-submit {
-	display: inline-block;
-	padding: 10px 22px;
+	display: inline-flex;
+	align-items: center;
+	padding: 8px 18px;
 	border: 0;
 	border-radius: 4px;
 	background: #2271b1;
 	color: #fff;
 	font-size: 15px;
-	cursor: default;
+}
+
+/* 送信ボタン内のクリック編集テキスト。 */
+.wpef-inline-submit {
+	color: #fff;
+	background: transparent;
+	border: 1px dashed transparent;
+	border-radius: 3px;
+	padding: 2px 6px;
+	font-size: 15px;
+	font-family: inherit;
+	text-align: center;
+}
+
+.wpef-inline-submit.wpef-editable {
+	cursor: text;
+	min-height: 0;
+}
+
+.wpef-inline-submit.wpef-editable:hover {
+	border-color: rgba( 255, 255, 255, 0.7 );
+	background: transparent;
+}
+
+input.wpef-inline-submit {
+	color: #1d2327;
+	background: #fff;
+}
+
+input.wpef-inline-submit:focus {
+	outline: none;
+	border-color: #fff;
 }
 
 /* ---- 詳細設定内のコントロール ---- */
