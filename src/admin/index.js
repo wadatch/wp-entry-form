@@ -379,6 +379,9 @@ function FieldSettings( { field, onChange } ) {
 /* ------------------------------------------------------------------ */
 function FieldCard( { field, index, total, onChange, onRemove, onMove, dragHandlers } ) {
 	const meta = typeMeta( field.type );
+	const cols = fieldCols( field );
+	const name = field.label || ( meta.display ? meta.label : __( '（名称未設定）', 'wp-entry-form' ) );
+	const [ open, setOpen ] = useState( true );
 	return (
 		<Card
 			className="wpef-field-card"
@@ -388,31 +391,27 @@ function FieldCard( { field, index, total, onChange, onRemove, onMove, dragHandl
 			onDrop={ ( e ) => dragHandlers.onDrop( e, index ) }
 		>
 			<CardHeader className="wpef-field-head">
-				<Flex>
-					<FlexBlock>
-						<span className="wpef-drag-handle" title={ __( 'ドラッグで並べ替え', 'wp-entry-form' ) }>⠿</span>
-						<strong>{ meta.label || field.type }</strong>
-					</FlexBlock>
-					<FlexItem>
-						<Button size="small" variant="tertiary" disabled={ index === 0 } label={ __( '上へ', 'wp-entry-form' ) } onClick={ () => onMove( index, -1 ) }>↑</Button>
-						<Button size="small" variant="tertiary" disabled={ index === total - 1 } label={ __( '下へ', 'wp-entry-form' ) } onClick={ () => onMove( index, 1 ) }>↓</Button>
-						<Button size="small" isDestructive variant="tertiary" onClick={ () => onRemove( index ) }>{ __( '削除', 'wp-entry-form' ) }</Button>
-					</FlexItem>
-				</Flex>
+				<span className="wpef-drag-handle" title={ __( 'ドラッグで並べ替え', 'wp-entry-form' ) }>⠿</span>
+				<button type="button" className="wpef-field-toggle" aria-expanded={ open } onClick={ () => setOpen( ! open ) }>
+					<span className="wpef-toggle-caret">{ open ? '▾' : '▸' }</span>
+					<span className="wpef-field-type">{ meta.label || field.type }</span>
+					<span className="wpef-field-name">{ name }</span>
+					{ field.required && <span className="wpef-req">[{ __( '必須', 'wp-entry-form' ) }]</span> }
+					{ ! meta.display && <span className="wpef-field-cols">{ cols }/{ GRID_COLS }</span> }
+				</button>
+				<span className="wpef-field-actions">
+					<Button size="small" variant="tertiary" disabled={ index === 0 } label={ __( '上へ', 'wp-entry-form' ) } onClick={ () => onMove( index, -1 ) }>↑</Button>
+					<Button size="small" variant="tertiary" disabled={ index === total - 1 } label={ __( '下へ', 'wp-entry-form' ) } onClick={ () => onMove( index, 1 ) }>↓</Button>
+					<Button size="small" isDestructive variant="tertiary" onClick={ () => onRemove( index ) }>{ __( '削除', 'wp-entry-form' ) }</Button>
+				</span>
 			</CardHeader>
-			<CardBody>
-				<div className="wpef-cols">
-					<div className="wpef-col-settings">
+			{ open && (
+				<CardBody>
+					<div className="wpef-field-settings">
 						<FieldSettings field={ field } onChange={ ( next ) => onChange( index, next ) } />
 					</div>
-					<div className="wpef-col-preview">
-						<span className="wpef-pv-caption">{ __( 'プレビュー', 'wp-entry-form' ) }</span>
-						<div className="wpef-pv-body">
-							<FieldPreview field={ field } />
-						</div>
-					</div>
-				</div>
-			</CardBody>
+				</CardBody>
+			) }
 		</Card>
 	);
 }

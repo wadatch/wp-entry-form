@@ -30,19 +30,76 @@
 }
 
 .wpef-field-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
 	background: #f6f7f7;
 }
 
 .wpef-field-card .wpef-drag-handle {
 	color: #787c82;
 	font-size: 1.1em;
-	margin-right: 8px;
 	cursor: grab;
 	user-select: none;
+	flex-shrink: 0;
 }
 
-.wpef-field-head .components-button {
-	margin-left: 4px;
+/* 開閉トグル（種別チップ＋項目名＋サマリ） */
+.wpef-field-toggle {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 0;
+	border: 0;
+	background: none;
+	cursor: pointer;
+	font: inherit;
+	text-align: left;
+}
+
+.wpef-toggle-caret {
+	color: #787c82;
+	width: 1em;
+	flex-shrink: 0;
+}
+
+.wpef-field-type {
+	flex-shrink: 0;
+	padding: 1px 9px;
+	font-size: 11px;
+	color: #fff;
+	background: #2271b1;
+	border-radius: 10px;
+}
+
+.wpef-field-name {
+	font-weight: 600;
+	color: #1d2327;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.wpef-field-cols {
+	margin-left: auto;
+	flex-shrink: 0;
+	font-size: 11px;
+	color: #787c82;
+}
+
+.wpef-field-actions {
+	flex-shrink: 0;
+	display: flex;
+	gap: 2px;
+}
+
+/* 単一カラムの設定（プレビューは「プレビュー」タブに集約） */
+.wpef-field-settings {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
 }
 
 /* ---- 2カラム（左:設定 / 右:プレビュー） ---- */
