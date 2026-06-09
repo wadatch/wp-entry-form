@@ -24,7 +24,6 @@ import {
 	Flex,
 	FlexItem,
 	FlexBlock,
-	Notice,
 } from '@wordpress/components';
 
 const data = window.wpefBuilder || {};
