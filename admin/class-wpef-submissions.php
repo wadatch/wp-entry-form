@@ -256,6 +256,19 @@ class WPEF_Submissions {
 		}
 		echo '</tbody></table>';
 
+		// 添付ファイル。
+		$files = class_exists( 'WPEF_DB' ) ? WPEF_DB::get_files_for_submission( $id ) : array();
+		if ( ! empty( $files ) ) {
+			echo '<h2>' . esc_html__( '添付ファイル', 'wp-entry-form' ) . '</h2>';
+			echo '<ul style="max-width:820px;margin-bottom:1.5em;">';
+			foreach ( $files as $file ) {
+				$dl   = class_exists( 'WPEF_Files' ) ? WPEF_Files::download_url( (int) $file['id'] ) : '#';
+				$size = size_format( (int) $file['file_size'] );
+				echo '<li><a href="' . esc_url( $dl ) . '">' . esc_html( $file['original_name'] ) . '</a> <span class="description">(' . esc_html( $size ) . ')</span></li>';
+			}
+			echo '</ul>';
+		}
+
 		// メタ情報。
 		$ts = strtotime( $submission['created_at'] . ' UTC' );
 		echo '<h2>' . esc_html__( 'メタ情報', 'wp-entry-form' ) . '</h2>';
