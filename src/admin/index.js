@@ -509,7 +509,13 @@ function BuilderCanvas( { fields, settings, onChange, onRemove, onResize, onAdd,
 
 	return (
 		<div className="wpef-canvas">
-			<p className="wpef-canvas-note">{ __( 'ラベルをクリックで直接編集、⚙ で詳細設定。⠿ をドラッグで並べ替え、右端ドラッグで幅を変更できます。', 'wp-entry-form' ) }</p>
+			<p className="wpef-canvas-note">
+				{ __( 'ラベルをクリックで直接編集、', 'wp-entry-form' ) }
+				<FaGear className="wpef-note-icon" aria-hidden="true" />
+				{ __( ' で詳細設定。', 'wp-entry-form' ) }
+				<FaGripVertical className="wpef-note-icon" aria-hidden="true" />
+				{ __( ' をドラッグで並べ替え、右端ドラッグで幅を変更できます。', 'wp-entry-form' ) }
+			</p>
 
 			<div className="wpef-fullpreview-form" ref={ gridRef }>
 				{ fields.length === 0 && (
