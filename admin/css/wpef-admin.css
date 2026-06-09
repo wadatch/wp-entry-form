@@ -330,6 +330,12 @@ body.wpef-resizing * {
 	margin-top: 8px;
 }
 
+.wpef-submit-hint {
+	margin: 8px 0 0;
+	font-size: 12px;
+	color: #50575e;
+}
+
 .wpef-prev-submit {
 	display: inline-flex;
 	align-items: center;

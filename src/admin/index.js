@@ -501,6 +501,11 @@ function BuilderCanvas( { fields, settings, onChange, onRemove, onResize, onAdd,
 							placeholder={ __( '送信する', 'wp-entry-form' ) }
 						/>
 					</span>
+					<p className="wpef-submit-hint">
+						{ settings.confirmation_screen
+							? __( 'ボタンを押すと確認画面に進みます。', 'wp-entry-form' )
+							: __( 'ボタンを押すと送信されます。', 'wp-entry-form' ) }
+					</p>
 				</div>
 			</div>
 
