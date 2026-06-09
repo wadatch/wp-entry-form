@@ -60,6 +60,7 @@ $wpef_includes = array(
 	'includes/class-wpef-files.php',
 	'includes/class-wpef-spam.php',
 	'includes/class-wpef-block.php',
+	'includes/class-wpef-updater.php',
 	'includes/class-wpef-rest.php',
 );
 
@@ -123,6 +124,11 @@ function wpef_init() {
 	// Gutenberg ブロック。
 	if ( class_exists( 'WPEF_Block' ) ) {
 		WPEF_Block::init();
+	}
+
+	// 自己更新（GitHub Releases）。
+	if ( class_exists( 'WPEF_Updater' ) ) {
+		WPEF_Updater::init();
 	}
 
 	// 管理画面。
