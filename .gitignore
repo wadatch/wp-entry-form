@@ -1,48 +1,27 @@
-# Wordpress - ignore core, configuration, examples, uploads and logs.
-# https://github.com/github/gitignore/blob/main/WordPress.gitignore
+# --- WP Entry Form (plugin repository) ---
+# このリポジトリのルートがプラグイン本体。WordPress サイト用の gitignore とは異なる点に注意。
 
-# Core
-#
-# Note: if you want to stage/commit WP core files
-# you can delete this whole section/until Configuration.
-/wp-admin/
-/wp-content/index.php
-/wp-content/languages
-/wp-content/plugins/index.php
-/wp-content/themes/index.php
-/wp-includes/
-/index.php
-/license.txt
-/readme.html
-/wp-*.php
-/xmlrpc.php
+# wp-env の個人ごとの上書き設定
+/.wp-env.override.json
 
-# Configuration
-wp-config.php
+# 依存・ビルド成果物
+/node_modules/
+/vendor/
+/build/
+/dist/
+*.zip
 
-# Example themes
-/wp-content/themes/twenty*/
-
-# Example plugin
-/wp-content/plugins/hello.php
-
-# Uploads
-/wp-content/uploads/
-
-# Log files
+# ログ・一時ファイル
 *.log
+*.cache
 
-# htaccess
-/.htaccess
+# OS / エディタ
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
 
-# All plugins
-#
-# Note: If you wish to whitelist plugins,
-# uncomment the next line
-#/wp-content/plugins
-
-# All themes
-#
-# Note: If you wish to whitelist themes,
-# uncomment the next line
-#/wp-content/themes
+# テスト・カバレッジ
+/coverage/
+/.phpunit.result.cache
