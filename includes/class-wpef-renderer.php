@@ -244,7 +244,21 @@ class WPEF_Renderer {
 			$wrap_class .= ' wpef-has-error';
 		}
 
-		$out = '<div class="' . esc_attr( $wrap_class ) . '">';
+		// クライアント側のリアルタイム検証用メタ（JS が読む。サーバ側検証は別途実施）。
+		$data  = ' data-wpef-type="' . esc_attr( $type ) . '"';
+		$data .= $field['required'] ? ' data-wpef-required="1"' : '';
+		$validation = is_array( $field['validation'] ) ? $field['validation'] : array();
+		if ( isset( $validation['max_length'] ) && '' !== $validation['max_length'] && null !== $validation['max_length'] ) {
+			$data .= ' data-wpef-maxlength="' . esc_attr( (int) $validation['max_length'] ) . '"';
+		}
+		if ( isset( $validation['min'] ) && '' !== $validation['min'] && null !== $validation['min'] ) {
+			$data .= ' data-wpef-min="' . esc_attr( $validation['min'] ) . '"';
+		}
+		if ( isset( $validation['max'] ) && '' !== $validation['max'] && null !== $validation['max'] ) {
+			$data .= ' data-wpef-max="' . esc_attr( $validation['max'] ) . '"';
+		}
+
+		$out = '<div class="' . esc_attr( $wrap_class ) . '"' . $data . '>';
 
 		// consent は単一チェックでラベルを後置するため別扱い。
 		if ( 'consent' === $type ) {

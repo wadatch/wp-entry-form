@@ -32,6 +32,28 @@ class WPEF_Shortcode {
 	public static function register_assets() {
 		wp_register_style( 'wpef-form', WPEF_URL . 'public/css/wpef-form.css', array(), WPEF_VERSION );
 		wp_register_script( 'wpef-form', WPEF_URL . 'public/js/wpef-form.js', array(), WPEF_VERSION, true );
+
+		// リアルタイム検証のメッセージ（翻訳対応のままサーバ側から渡す）。%s/%d は JS で置換。
+		wp_localize_script(
+			'wpef-form',
+			'wpefForm',
+			array(
+				'messages' => array(
+					/* translators: %s: フィールドのラベル */
+					'required'  => __( '「%s」は必須です。', 'wp-entry-form' ),
+					'consent'   => __( '同意が必要です。', 'wp-entry-form' ),
+					'email'     => __( 'メールアドレスの形式が正しくありません。', 'wp-entry-form' ),
+					'url'       => __( 'URL の形式が正しくありません。', 'wp-entry-form' ),
+					'number'    => __( '数値を入力してください。', 'wp-entry-form' ),
+					/* translators: %s: 最小値 */
+					'min'       => __( '%s 以上の値を入力してください。', 'wp-entry-form' ),
+					/* translators: %s: 最大値 */
+					'max'       => __( '%s 以下の値を入力してください。', 'wp-entry-form' ),
+					/* translators: %d: 最大文字数 */
+					'maxlength' => __( '%d 文字以内で入力してください。', 'wp-entry-form' ),
+				),
+			)
+		);
 	}
 
 	/**
