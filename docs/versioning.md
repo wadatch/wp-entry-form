@@ -1,42 +1,45 @@
 # バージョニング規約
 
-WP Entry Form は **main へのマージごとに自動採番**してリリースします。番号は手で編集しません（ファイルに書き戻さないため、保護ブランチ運用と両立します）。
+WP Entry Form は **main へのマージごとに自動採番**してリリースします。パッチ番号は手で編集しません（ファイルに書き戻さないため、保護ブランチ運用と両立します）。
 
 ## 採番形式
 
 ```
-MAJOR.YYYYMMDD.連番
+MAJOR.MINOR.PATCH      （例: 0.1.0）
 ```
 
 | 構成要素 | 意味 | 決まり方 |
 | --- | --- | --- |
-| `MAJOR` | 破壊的変更（後方非互換）の世代 | `wp-entry-form.php` の定数 `WPEF_MAJOR_VERSION`。**破壊的変更のときだけ手動で +1**。初期値 `0` |
-| `YYYYMMDD` | リリース日（**JST**） | main マージ時の日付 |
-| `連番` | その日の何回目のリリースか | 同じ `MAJOR.YYYYMMDD` の既存タグ数 + 1（**1 始まり**） |
+| `MAJOR`（先頭） | 大きな世代（破壊的変更など） | `wp-entry-form.php` の定数 `WPEF_MAJOR_VERSION`。**上げたいときだけ手動で変更**。初期値 `0` |
+| `MINOR`（中央） | 機能追加の節目 | `wp-entry-form.php` の定数 `WPEF_MINOR_VERSION`。**上げたいときだけ手動で変更**。初期値 `1` |
+| `PATCH`（一番下） | リリースのたびに増える番号 | 同じ `MAJOR.MINOR` の既存タグ数から**自動インクリメント**（初回は `0`） |
 
-- タグ名は接頭辞 `v` 付き（例 `v0.20260609.1`）。GitHub Release も同名で作成。
-- 例: 2026-06-09 にその日 1 回目のマージ → `0.20260609.1`、同日 2 回目 → `0.20260609.2`、翌日 1 回目 → `0.20260610.1`。
-- この形式は SemVer としても妥当な3要素で、**新しいリリースほどバージョンが大きく**なります（日付が単調増加、MAJOR を上げれば必ず上位）。
+- タグ名は接頭辞 `v` 付き（例 `v0.1.0`）。GitHub Release も同名で作成。
+- 例: 現行 `MAJOR=0` / `MINOR=1` の場合、最初のリリースは `0.1.0`、次のマージで `0.1.1`、その次は `0.1.2` …と**一番下の数字だけが増えていきます**。
+- `MINOR` を 2 に上げると、次のリリースは `0.2.0` から始まり、以降 `0.2.1` …。`MAJOR` を 1 に上げると `1.x.0` から。
 
-## 破壊的変更（MAJOR の更新）
+## メジャー / マイナーの更新
 
-後方非互換の変更（DB スキーマの破壊的変更、公開フック/ショートコード仕様の削除・変更など）を入れるときは、その変更を含む PR で **`wp-entry-form.php` の `WPEF_MAJOR_VERSION` を +1** します。
+世代を上げたいときは、その変更を含む PR で `wp-entry-form.php` の定数を手で変更します（PATCH は触りません）。
 
 ```php
-// 0 → 1 に更新
-define( 'WPEF_MAJOR_VERSION', 1 );
+define( 'WPEF_MAJOR_VERSION', 0 ); // 先頭の数字。破壊的変更などで上げる
+define( 'WPEF_MINOR_VERSION', 1 ); // 中央の数字。機能追加の節目で上げる
 ```
 
-マージ後、最初のリリースは `1.YYYYMMDD.1` になります。これが唯一の手動操作で、それ以外の番号は自動です。
+- `MINOR` を `1 → 2` に変更してマージ → 最初のリリースは `0.2.0`。
+- `MAJOR` を `0 → 1` に変更してマージ → 最初のリリースは `1.{MINOR}.0`。
+
+これらが唯一の手動操作で、PATCH（一番下）は常に自動です。
 
 ## リリースの流れ
 
-1. 機能ブランチで開発（バージョン番号は触らない）。
-2. 破壊的変更を含む場合のみ `WPEF_MAJOR_VERSION` を +1。
+1. 機能ブランチで開発（PATCH は触らない）。
+2. 世代を上げる場合のみ `WPEF_MAJOR_VERSION` / `WPEF_MINOR_VERSION` を変更。
 3. PR を作成し、CI を通して main へマージ。
 4. `.github/workflows/release.yml` が起動し、
-   - `WPEF_MAJOR_VERSION` を読み取り、
-   - JST の日付と当日連番から `MAJOR.YYYYMMDD.連番` を算出、
+   - `WPEF_MAJOR_VERSION` / `WPEF_MINOR_VERSION` を読み取り、
+   - 同 `MAJOR.MINOR` の既存タグ数から `MAJOR.MINOR.PATCH` を算出、
    - その番号を **ビルド時にプラグインヘッダ `Version:` へ注入**して zip を作成（`bin/build.sh`）、
    - タグを打ち、GitHub Release を作成。
 
@@ -44,12 +47,12 @@ define( 'WPEF_MAJOR_VERSION', 1 );
 
 ## ソース上のバージョン表記について
 
-- `wp-entry-form.php` のヘッダ `Version: 0.0.0` は**ローカル開発用のプレースホルダ**です。配布物には自動採番した番号が注入されます。
-- `package.json` の `version` はリリース採番には**使いません**（npm 公開もしないため固定値）。
+- `wp-entry-form.php` のヘッダ `Version:` は**ローカル開発用の表示値**（現行 `MAJOR.MINOR.0`）です。配布物には自動採番した番号が注入されます。
+- `package.json` / `readme.txt` の番号は表示用で、リリース採番には**使いません**（採番は定数 + タグから算出）。
 
 ## ローカルでの番号付きビルド（確認用）
 
 ```bash
-WPEF_BUILD_VERSION=0.20260609.1 bash bin/build.sh
-# dist/wp-entry-form.zip 内の wp-entry-form.php に Version: 0.20260609.1 が注入される
+WPEF_BUILD_VERSION=0.1.0 bash bin/build.sh
+# dist/wp-entry-form.zip 内の wp-entry-form.php に Version: 0.1.0 が注入される
 ```

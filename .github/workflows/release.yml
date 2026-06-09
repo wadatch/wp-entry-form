@@ -1,10 +1,9 @@
 name: Release plugin
 
 # main への push（= PR マージ）のたびに自動採番してリリースする。
-# 採番形式: MAJOR.YYYYMMDD.連番（例 0.20260609.1）。詳細は docs/versioning.md。
-#   - MAJOR は wp-entry-form.php の WPEF_MAJOR_VERSION（破壊的変更時のみ手動 +1）
-#   - YYYYMMDD はマージ日（JST）
-#   - 連番は同 MAJOR.日付 の既存タグ数 + 1
+# 採番形式: MAJOR.MINOR.PATCH（例 0.1.0）。詳細は docs/versioning.md。
+#   - MAJOR/MINOR は wp-entry-form.php の WPEF_MAJOR_VERSION / WPEF_MINOR_VERSION（手動で変更）
+#   - PATCH（一番下の数字）は同 MAJOR.MINOR の既存タグ数から自動インクリメント（初回は 0）
 on:
   push:
     branches: [ main ]
@@ -24,32 +23,30 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Compute version (MAJOR.YYYYMMDD.seq)
+      - name: Compute version (MAJOR.MINOR.PATCH)
         id: ver
-        env:
-          TZ: Asia/Tokyo
         run: |
           set -euo pipefail
           git fetch --tags --force origin >/dev/null 2>&1 || true
 
-          MAJOR=$(grep 'WPEF_MAJOR_VERSION' wp-entry-form.php | grep -oE '[0-9]+' | tail -1)
-          if [ -z "${MAJOR:-}" ]; then
-            echo "wp-entry-form.php から WPEF_MAJOR_VERSION を取得できませんでした。" >&2
+          MAJOR=$(grep "define( 'WPEF_MAJOR_VERSION'" wp-entry-form.php | grep -oE '[0-9]+' | tail -1)
+          MINOR=$(grep "define( 'WPEF_MINOR_VERSION'" wp-entry-form.php | grep -oE '[0-9]+' | tail -1)
+          if [ -z "${MAJOR:-}" ] || [ -z "${MINOR:-}" ]; then
+            echo "wp-entry-form.php から MAJOR/MINOR を取得できませんでした。" >&2
             exit 1
           fi
 
-          DATE=$(date +%Y%m%d)
-          PREFIX="v${MAJOR}.${DATE}."
-          COUNT=$(git tag --list "${PREFIX}*" | wc -l | tr -d ' ')
-          SEQ=$((COUNT + 1))
-          TAG="${PREFIX}${SEQ}"
-          # 手動タグ等との衝突に備えて空き番号まで進める。
+          PREFIX="v${MAJOR}.${MINOR}."
+          # 同 MAJOR.MINOR の既存タグ数を PATCH の起点にする（初回は 0 → MAJOR.MINOR.0）。
+          PATCH=$(git tag --list "${PREFIX}*" | wc -l | tr -d ' ')
+          TAG="${PREFIX}${PATCH}"
+          # 既存タグと衝突する場合は空き番号まで進める。
           while git rev-parse "${TAG}" >/dev/null 2>&1; do
-            SEQ=$((SEQ + 1))
-            TAG="${PREFIX}${SEQ}"
+            PATCH=$((PATCH + 1))
+            TAG="${PREFIX}${PATCH}"
           done
 
-          VERSION="${MAJOR}.${DATE}.${SEQ}"
+          VERSION="${MAJOR}.${MINOR}.${PATCH}"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "採番: ${TAG}"
