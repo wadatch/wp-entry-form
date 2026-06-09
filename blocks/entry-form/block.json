@@ -1,0 +1,23 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "wpef/entry-form",
+	"title": "WP Entry Form",
+	"category": "widgets",
+	"icon": "feedback",
+	"description": "作成した入力フォームを選んで埋め込みます。",
+	"keywords": [ "form", "entry", "contact", "フォーム" ],
+	"textdomain": "wp-entry-form",
+	"attributes": {
+		"formId": {
+			"type": "number",
+			"default": 0
+		}
+	},
+	"supports": {
+		"html": false,
+		"align": [ "wide", "full" ]
+	},
+	"editorScript": "wpef-entry-form-editor",
+	"render": "file:./render.php"
+}

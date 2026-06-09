@@ -36,6 +36,7 @@ class WPEF_Renderer {
 		$values = isset( $context['values'] ) && is_array( $context['values'] ) ? $context['values'] : array();
 		$errors = isset( $context['errors'] ) && is_array( $context['errors'] ) ? $context['errors'] : array();
 		$return = isset( $context['return'] ) ? $context['return'] : '';
+		$notice = isset( $context['notice'] ) ? $context['notice'] : '';
 
 		$messages       = isset( $settings['messages'] ) && is_array( $settings['messages'] ) ? $settings['messages'] : array();
 		$submit_label   = isset( $messages['submit_button'] ) && '' !== $messages['submit_button'] ? $messages['submit_button'] : __( '送信する', 'wp-entry-form' );
@@ -43,6 +44,11 @@ class WPEF_Renderer {
 
 		$out  = '';
 		$out .= '<form class="wpef-form" method="post" enctype="multipart/form-data" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" novalidate>';
+
+		// フォーム全体の通知（レート制限など）。
+		if ( '' !== $notice ) {
+			$out .= '<div class="wpef-form-errors" role="alert">' . esc_html( $notice ) . '</div>';
+		}
 
 		// エラーサマリ（あれば）。
 		if ( ! empty( $errors ) ) {
