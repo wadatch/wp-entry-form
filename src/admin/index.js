@@ -36,15 +36,6 @@ const HINT_TYPES = [ 'text', 'textarea', 'email', 'tel', 'url', 'number', 'date'
 // グリッドは12カラム。横幅はフィールドの cols（1〜12）で表す。
 const GRID_COLS = 12;
 
-// よく使う幅のプリセット。
-const WIDTH_PRESETS = [
-	{ cols: 12, label: __( '全幅', 'wp-entry-form' ) },
-	{ cols: 8, label: '2/3' },
-	{ cols: 6, label: '1/2' },
-	{ cols: 4, label: '1/3' },
-	{ cols: 3, label: '1/4' },
-];
-
 // 旧来の名前付き幅 → cols（後方互換）。
 const LEGACY_WIDTH_COLS = { full: 12, two_thirds: 8, half: 6, third: 4, quarter: 3 };
 
@@ -151,34 +142,6 @@ function OptionsEditor( { options, onChange } ) {
 			<Button variant="secondary" size="small" icon={ <FaPlus aria-hidden="true" /> } iconSize={ 14 } onClick={ () => onChange( [ ...list, { label: '', value: '' } ] ) }>
 				{ __( '選択肢を追加', 'wp-entry-form' ) }
 			</Button>
-		</div>
-	);
-}
-
-/* ------------------------------------------------------------------ */
-/* 横幅ピッカー（比率バー）                                            */
-/* ------------------------------------------------------------------ */
-function WidthControl( { field, patch } ) {
-	const current = fieldCols( field );
-	return (
-		<div className="wpef-width-control">
-			<p className="wpef-ctrl-label">{ __( '横幅', 'wp-entry-form' ) } <span className="wpef-cols-badge">{ current }/{ GRID_COLS }</span></p>
-			<div className="wpef-width-picker" role="group" aria-label={ __( '横幅', 'wp-entry-form' ) }>
-				{ WIDTH_PRESETS.map( ( w ) => (
-					<button
-						type="button"
-						key={ w.cols }
-						className={ 'wpef-wbtn' + ( current === w.cols ? ' is-active' : '' ) }
-						aria-pressed={ current === w.cols }
-						title={ w.label }
-						onClick={ () => patch( { cols: w.cols } ) }
-					>
-						<span className="wpef-wbar"><span className="wpef-wfill" style={ { width: ( w.cols / GRID_COLS ) * 100 + '%' } } /></span>
-						<span className="wpef-wlabel">{ w.label }</span>
-					</button>
-				) ) }
-			</div>
-			<p className="wpef-width-hint">{ __( 'プレビューの右端をドラッグして細かく調整もできます。スマホでは自動で全幅です。', 'wp-entry-form' ) }</p>
 		</div>
 	);
 }
@@ -320,14 +283,13 @@ function FieldDetails( { field, onChange } ) {
 	);
 
 	if ( meta.display ) {
-		return <WidthControl field={ field } patch={ patch } />;
+		return <p className="wpef-no-details">{ __( 'この項目に詳細設定はありません。テキストは直接クリックで編集、横幅は右端のドラッグで変更できます。', 'wp-entry-form' ) }</p>;
 	}
 
 	if ( field.type === 'consent' ) {
 		return (
 			<Fragment>
 				<ToggleControl label={ __( '同意を必須にする', 'wp-entry-form' ) } checked={ !! field.required } onChange={ ( v ) => patch( { required: v } ) } __nextHasNoMarginBottom />
-				<WidthControl field={ field } patch={ patch } />
 				{ advanced }
 			</Fragment>
 		);
@@ -388,8 +350,6 @@ function FieldDetails( { field, onChange } ) {
 				onChange={ ( v ) => patch( { help: v } ) }
 				__nextHasNoMarginBottom
 			/>
-
-			<WidthControl field={ field } patch={ patch } />
 
 			{ advanced }
 		</Fragment>
