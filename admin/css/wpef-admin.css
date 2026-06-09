@@ -22,6 +22,70 @@
 	padding-top: 20px;
 }
 
+/* ---- 公開状態パネル（フォーム名の下に大きめ表示） ---- */
+.wpef-publish {
+	margin: 8px 0 4px;
+	padding: 16px 18px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-left: 4px solid #2271b1;
+	border-radius: 6px;
+}
+
+.wpef-publish-title {
+	display: block;
+	font-size: 13px;
+	font-weight: 600;
+	color: #50575e;
+	margin-bottom: 8px;
+}
+
+.wpef-publish-states {
+	display: inline-flex;
+	border: 1px solid #c3c4c7;
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.wpef-pubbtn {
+	padding: 8px 20px;
+	border: 0;
+	border-right: 1px solid #c3c4c7;
+	background: #f6f7f7;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+	color: #1d2327;
+}
+
+.wpef-pubbtn:last-child {
+	border-right: 0;
+}
+
+.wpef-pubbtn:hover {
+	background: #eef1f3;
+}
+
+.wpef-pubbtn.is-active.wpef-pubbtn-published {
+	background: #00a32a;
+	color: #fff;
+}
+
+.wpef-pubbtn.is-active.wpef-pubbtn-draft {
+	background: #787c82;
+	color: #fff;
+}
+
+.wpef-pubbtn.is-active.wpef-pubbtn-closed {
+	background: #dba617;
+	color: #fff;
+}
+
+.wpef-publish-schedule {
+	margin-top: 14px;
+	max-width: 640px;
+}
+
 /* ---- キャンバス ---- */
 .wpef-canvas-note {
 	margin: 0 0 16px;

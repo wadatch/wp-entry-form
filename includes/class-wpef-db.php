@@ -84,13 +84,14 @@ class WPEF_DB {
 			WPEF_Install::forms_table(),
 			array(
 				'title'      => isset( $data['title'] ) ? (string) $data['title'] : '',
-				'status'     => isset( $data['status'] ) ? (string) $data['status'] : 'active',
+				'status'     => isset( $data['status'] ) ? (string) $data['status'] : 'published',
 				'fields'     => wp_json_encode( isset( $data['fields'] ) ? $data['fields'] : array() ),
 				'settings'   => wp_json_encode( isset( $data['settings'] ) ? $data['settings'] : array() ),
+				'updated_by' => get_current_user_id() ? get_current_user_id() : null,
 				'created_at' => $now,
 				'updated_at' => $now,
 			),
-			array( '%s', '%s', '%s', '%s', '%s', '%s' )
+			array( '%s', '%s', '%s', '%s', '%d', '%s', '%s' )
 		);
 		return $ok ? (int) $wpdb->insert_id : false;
 	}
@@ -105,8 +106,11 @@ class WPEF_DB {
 	public static function update_form( $id, $data ) {
 		global $wpdb;
 
-		$columns = array( 'updated_at' => self::now() );
-		$formats = array( '%s' );
+		$columns = array(
+			'updated_at' => self::now(),
+			'updated_by' => get_current_user_id() ? get_current_user_id() : null,
+		);
+		$formats = array( '%s', '%d' );
 
 		if ( isset( $data['title'] ) ) {
 			$columns['title'] = (string) $data['title'];

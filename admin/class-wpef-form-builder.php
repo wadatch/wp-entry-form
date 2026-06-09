@@ -44,28 +44,34 @@ class WPEF_Form_Builder {
 		echo '<th>' . esc_html__( 'タイトル', 'wp-entry-form' ) . '</th>';
 		echo '<th>' . esc_html__( 'ステータス', 'wp-entry-form' ) . '</th>';
 		echo '<th>' . esc_html__( 'ショートコード', 'wp-entry-form' ) . '</th>';
+		echo '<th>' . esc_html__( '最終編集', 'wp-entry-form' ) . '</th>';
 		echo '<th>' . esc_html__( '操作', 'wp-entry-form' ) . '</th>';
 		echo '</tr></thead><tbody>';
 
 		if ( empty( $forms ) ) {
-			echo '<tr><td colspan="5">' . esc_html__( 'まだフォームがありません。「新規追加」から作成してください。', 'wp-entry-form' ) . '</td></tr>';
+			echo '<tr><td colspan="6">' . esc_html__( 'まだフォームがありません。「新規追加」から作成してください。', 'wp-entry-form' ) . '</td></tr>';
 		} else {
 			foreach ( $forms as $form ) {
-				$edit_url = WPEF_Admin::page_url(
-					array(
-						'action'  => 'edit',
-						'form_id' => (int) $form['id'],
-					)
-				);
+				$fid      = (int) $form['id'];
+				$edit_url = WPEF_Admin::page_url( array( 'action' => 'edit', 'form_id' => $fid ) );
+				$status   = WPEF_Form_State::normalize_status( $form['status'] );
+
 				echo '<tr>';
-				echo '<td>' . (int) $form['id'] . '</td>';
+				echo '<td>' . $fid . '</td>';
 				echo '<td><a href="' . esc_url( $edit_url ) . '"><strong>' . esc_html( $form['title'] ) . '</strong></a></td>';
 				echo '<td>' . esc_html( WPEF_Form_State::status_label( $form['status'] ) ) . '</td>';
-				echo '<td><code>[entry_form id="' . (int) $form['id'] . '"]</code></td>';
+				echo '<td><code>[entry_form id="' . $fid . '"]</code></td>';
+				echo '<td>' . esc_html( self::editor_label( $form ) ) . '</td>';
 				echo '<td>';
 				echo '<a href="' . esc_url( $edit_url ) . '">' . esc_html__( '編集', 'wp-entry-form' ) . '</a> | ';
-				echo '<a href="' . esc_url( self::row_action_url( 'duplicate', (int) $form['id'] ) ) . '">' . esc_html__( '複製', 'wp-entry-form' ) . '</a> | ';
-				echo '<a href="' . esc_url( self::row_action_url( 'delete', (int) $form['id'] ) ) . '" onclick="return confirm(\'' . esc_js( __( 'このフォームを削除しますか？', 'wp-entry-form' ) ) . '\');" style="color:#b32d2e;">' . esc_html__( '削除', 'wp-entry-form' ) . '</a>';
+				// 公開/非公開のクイック切替。
+				if ( 'published' === $status ) {
+					echo '<a href="' . esc_url( self::row_action_url( 'unpublish', $fid ) ) . '">' . esc_html__( '非公開にする', 'wp-entry-form' ) . '</a> | ';
+				} else {
+					echo '<a href="' . esc_url( self::row_action_url( 'publish', $fid ) ) . '">' . esc_html__( '公開する', 'wp-entry-form' ) . '</a> | ';
+				}
+				echo '<a href="' . esc_url( self::row_action_url( 'duplicate', $fid ) ) . '">' . esc_html__( '複製', 'wp-entry-form' ) . '</a> | ';
+				echo '<a href="' . esc_url( self::row_action_url( 'delete', $fid ) ) . '" onclick="return confirm(\'' . esc_js( __( 'このフォームを削除しますか？', 'wp-entry-form' ) ) . '\');" style="color:#b32d2e;">' . esc_html__( '削除', 'wp-entry-form' ) . '</a>';
 				echo '</td>';
 				echo '</tr>';
 			}
@@ -73,6 +79,31 @@ class WPEF_Form_Builder {
 
 		echo '</tbody></table>';
 		echo '</div>';
+	}
+
+	/**
+	 * 最終編集者と日時の表示文字列。
+	 *
+	 * @param array $form フォーム。
+	 * @return string
+	 */
+	private static function editor_label( $form ) {
+		$name = '';
+		if ( ! empty( $form['updated_by'] ) ) {
+			$user = get_userdata( (int) $form['updated_by'] );
+			if ( $user ) {
+				$name = $user->display_name;
+			}
+		}
+		$when = '';
+		if ( ! empty( $form['updated_at'] ) ) {
+			$ts   = strtotime( $form['updated_at'] . ' UTC' );
+			$when = $ts ? wp_date( 'Y-m-d H:i', $ts ) : '';
+		}
+		if ( '' === $name ) {
+			return $when;
+		}
+		return '' !== $when ? $name . ' / ' . $when : $name;
 	}
 
 	/**
@@ -126,9 +157,11 @@ class WPEF_Form_Builder {
 	 */
 	private static function render_notice( $key ) {
 		$messages = array(
-			'saved'      => __( 'フォームを保存しました。', 'wp-entry-form' ),
-			'duplicated' => __( 'フォームを複製しました。', 'wp-entry-form' ),
-			'deleted'    => __( 'フォームを削除しました。', 'wp-entry-form' ),
+			'saved'       => __( 'フォームを保存しました。', 'wp-entry-form' ),
+			'duplicated'  => __( 'フォームを複製しました。', 'wp-entry-form' ),
+			'deleted'     => __( 'フォームを削除しました。', 'wp-entry-form' ),
+			'published'   => __( 'フォームを公開しました。', 'wp-entry-form' ),
+			'unpublished' => __( 'フォームを非公開（下書き）にしました。', 'wp-entry-form' ),
 		);
 		if ( isset( $messages[ $key ] ) ) {
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $messages[ $key ] ) . '</p></div>';
@@ -197,6 +230,12 @@ class WPEF_Form_Builder {
 		if ( 'delete' === $do && $form_id ) {
 			WPEF_DB::delete_form( $form_id );
 			$notice = 'deleted';
+		} elseif ( 'publish' === $do && $form_id ) {
+			WPEF_DB::update_form( $form_id, array( 'status' => 'published' ) );
+			$notice = 'published';
+		} elseif ( 'unpublish' === $do && $form_id ) {
+			WPEF_DB::update_form( $form_id, array( 'status' => 'draft' ) );
+			$notice = 'unpublished';
 		} elseif ( 'duplicate' === $do && $form_id ) {
 			$src = WPEF_DB::get_form( $form_id );
 			if ( $src ) {
